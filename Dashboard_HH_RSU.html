@@ -54,15 +54,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   box-shadow:0 2px 16px rgba(0,119,182,.08);
 }
 .topbar-inner{
-  max-width:1200px;margin:0 auto;padding:0 16px;
+  max-width:1200px;margin:0 auto;padding:0 12px;
   display:flex;align-items:center;justify-content:space-between;
-  height:68px;gap:12px;
+  height:58px;gap:10px;
 }
-.logo-block{display:flex;align-items:center;gap:12px}
-.logo-img{height:46px;width:auto;flex-shrink:0;object-fit:contain}
-.logo-divider{width:1.5px;height:36px;background:var(--border2);flex-shrink:0}
-.logo-subtitle{font-size:14px;font-weight:800;color:var(--primary);letter-spacing:.3px;line-height:1.3}
-.logo-subtitle small{display:block;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.2px;margin-top:1px}
+.logo-block{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.logo-img{height:36px;width:auto;flex-shrink:0;object-fit:contain;max-width:130px}
+.logo-divider{width:1.5px;height:30px;background:var(--border2);flex-shrink:0}
+.logo-subtitle{font-size:12px;font-weight:800;color:var(--primary);letter-spacing:.2px;line-height:1.25;min-width:0}
+.logo-subtitle small{display:block;font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.1px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .topbar-right{display:flex;align-items:center;gap:8px}
 .badge-live{
   display:flex;align-items:center;gap:5px;
@@ -492,7 +493,16 @@ tbody td{padding:11px 14px;color:var(--text)}
 .btn-install{background:white;color:var(--primary);border:none;font-family:var(--font);font-size:12px;font-weight:700;padding:7px 16px;border-radius:7px;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .btn-dismiss{background:none;border:none;color:white;opacity:.7;cursor:pointer;font-size:18px;flex-shrink:0}
 
-@media(max-width:480px){.stat-val{font-size:22px}.modal{padding:20px 16px}}
+@media(max-width:480px){
+  .stat-val{font-size:22px}
+  .modal{padding:20px 16px}
+  .logo-subtitle{font-size:11px}
+  .logo-subtitle small{display:none}
+  .logo-img{height:30px;max-width:110px}
+  .logo-divider{height:26px}
+  .badge-live,.badge-offline{font-size:10px;padding:3px 8px}
+  .btn-cfg{font-size:11px;padding:5px 10px}
+}
 </style>
 </head>
 <body>
