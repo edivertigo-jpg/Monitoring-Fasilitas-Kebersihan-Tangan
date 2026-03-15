@@ -730,6 +730,7 @@ tbody td{padding:11px 14px;color:var(--text)}
 
 <!-- TAB: REKAP -->
 <div class="tab-panel" id="tab-rekap">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button onclick="loadData().then(()=>toast('✅ Diperbarui','success'))" style="background:var(--primary-light);border:1.5px solid var(--border2);color:var(--primary);font-size:11px;font-weight:700;font-family:var(--font);padding:6px 14px;border-radius:8px;cursor:pointer">🔄 Refresh</button></div>
   <div id="rekapDebug" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto"></div>
   <div class="table-wrap"><div class="table-scroll">
     <table>
@@ -847,6 +848,10 @@ tbody td{padding:11px 14px;color:var(--text)}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── GLOBAL VARS (declared first to avoid hoisting issues) ──
+var fab, viewerFoto=null, activeCameraKey=null, deferredPrompt=null, _tt, _editId=null;
+window._fotoMap = {};
+
 // ── STATE ─────────────────────────────────────────────────
 const S={
   apiUrl:'https://script.google.com/macros/s/AKfycbzYq0tkcerj4PLjFZ3w9bmIrpAC92vwy7rKrwWCNC459QYH9ZtOIqcV5GgKfH3OlpQb/exec',
@@ -876,7 +881,6 @@ const AREA_CLR={
 };
 
 // PWA
-var deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault(); deferredPrompt=e;
   if(!localStorage.getItem('pwa_dismissed')) document.getElementById('pwaBanner').classList.add('show');
@@ -978,7 +982,7 @@ async function loadData(){
     console.warn('getSummary error:',summary.value.error);
   }
   if(foto.status==='fulfilled'&&foto.value.ok){
-    S.foto=foto.value.foto||[]; S.fotoFiltered=[...S.foto]; renderFoto(); updateFotoStat();
+    S.foto=foto.value.foto||[]; S.fotoFiltered=[...S.foto]; window._fotoMap={}; renderFoto(); updateFotoStat();
   }
   if(rekap.status==='fulfilled'&&rekap.value.ok){
     S.rekap=rekap.value.data||[];
@@ -1055,8 +1059,7 @@ function renderFoto(filter){
     return;
   }
   // Store foto in global map for reliable access
-  window._fotoMap = window._fotoMap || {};
-  data.forEach((d,i) => { window._fotoMap['fi_'+i] = d; });
+    data.forEach((d,i) => { window._fotoMap['fi_'+i] = d; });
 
   list.innerHTML=data.map((d,idx)=>{
     const sc=d.Status==='Selesai Diperbaiki'?'selesai':d.Status==='Dalam Perbaikan'?'perbaikan':'dilaporkan';
@@ -1103,7 +1106,7 @@ function renderFoto(filter){
 }
 function filterFoto(status,btn){
   S.fotoFilter=status;
-  window._fotoMap = {}; // reset map
+  window._fotoMap = {};
   document.querySelectorAll('.filter-chips .chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderFoto(status);
@@ -1252,7 +1255,6 @@ function updateDamageSection(){
   });
 }
 
-var activeCameraKey=null;
 
 function triggerCameraOnly(key){
   activeCameraKey=key;
@@ -1509,7 +1511,6 @@ async function submitStatus(){
 }
 
 // ── TABS ──────────────────────────────────────────────────
-var fab;
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.classList.toggle('active',['dashboard','input','foto','rekap'][i]===id); });
   document.querySelectorAll('.tab-panel').forEach(p=>{ p.classList.toggle('active',p.id==='tab-'+id); });
@@ -1519,7 +1520,6 @@ function switchTab(id){
 
 
 // ── FOTO VIEWER ───────────────────────────────────────────────
-var viewerFoto = null;
 
 function openViewerByIdx(idx){
   // Coba semua sumber data
@@ -1638,7 +1638,7 @@ function openEditFromViewer() {
 function openEditModal(id) {
   const d = S.foto.find(f => f.ID === id);
   if (!d) { toast('Data tidak ditemukan','error'); return; }
-  S.editId = id;
+  _editId = id;
   // Pre-fill form
   const sel = document.getElementById('efRoom');
   for (const o of sel.options) {
@@ -1661,7 +1661,7 @@ async function submitEditFoto() {
   btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try {
     const r = await apiPost({
-      action:'editFoto', id:S.editId,
+      action:'editFoto', id:_editId,
       namaRuangan:rname, areaLantai:area,
       itemBermasalah:document.getElementById('efItem').value,
       deskripsi:document.getElementById('efDesc').value,
@@ -1698,7 +1698,6 @@ async function confirmDeleteFoto() {
 
 // ── HELPERS ───────────────────────────────────────────────
 function fmtDate(v){ if(!v) return '—'; const d=new Date(v); return isNaN(d)?v:d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
-var _tt;
 function toast(msg,type=''){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>el.className='toast',3000); }
 </script>
 
