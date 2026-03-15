@@ -633,7 +633,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="cfg-grid">
     <div class="cfg-field" style="grid-column:1/-1">
       <label>URL Google Apps Script</label>
-      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbzYq0tkcerj4PLjFZ3w9bmIrpAC92vwy7rKrwWCNC459QYH9ZtOIqcV5GgKfH3OlpQb/exec">
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbw0c53xg5D6efyZnjwwDSatLcLbDjHQcnAfQruSnDnZh_H9Sfh-ghbbEq1BEQKfprCzsQ/exec">
     </div>
     <div class="cfg-field">
       <label>Bulan</label>
@@ -854,7 +854,7 @@ window._fotoMap = {};
 
 // ── STATE ─────────────────────────────────────────────────
 const S={
-  apiUrl:'https://script.google.com/macros/s/AKfycbzYq0tkcerj4PLjFZ3w9bmIrpAC92vwy7rKrwWCNC459QYH9ZtOIqcV5GgKfH3OlpQb/exec',
+  apiUrl:'https://script.google.com/macros/s/AKfycbw0c53xg5D6efyZnjwwDSatLcLbDjHQcnAfQruSnDnZh_H9Sfh-ghbbEq1BEQKfprCzsQ/exec',
   bulan:String(new Date().getMonth()+1),
   tahun:String(new Date().getFullYear()),
   rooms:[],summary:null,foto:[],rekap:[],
@@ -1425,7 +1425,8 @@ function pickStatusByVal(val){
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
-document.getElementById('mViewer').addEventListener('click',e=>{ if(e.target===document.getElementById('mViewer')) closeViewer(); });
+const _mViewer=document.getElementById('mViewer');
+if(_mViewer) _mViewer.addEventListener('click',e=>{ if(e.target===_mViewer) closeViewer(); });
 
 // ── SUBMIT ────────────────────────────────────────────────
 async function submitChecklist(){
@@ -1595,13 +1596,20 @@ function openViewerWithData(d) {
 
   // Info grid
   const sc = d.Status==='Selesai Diperbaiki'?'t-hijau':d.Status==='Dalam Perbaikan'?'t-orange':'t-merah';
+  // Robust field access - support berbagai nama field
+  const _item = d.Item_Bermasalah||d['Item_Bermasalah']||d.item_bermasalah||'—';
+  const _ruangan = d.Nama_Ruangan||d['Nama_Ruangan']||'—';
+  const _area = d.Area_Lantai||d['Area_Lantai']||'—';
+  const _pelapor = d.Pelapor||d['Pelapor']||'—';
+  const _tgl = d.Tanggal_Temuan||d['Tanggal_Temuan']||'—';
+  const _status = d.Status||'—';
   document.getElementById('vwInfoGrid').innerHTML = `
-    <div class="foto-info-item"><label>Status</label><span class="ftag ${sc}">${d.Status}</span></div>
-    <div class="foto-info-item"><label>Ruangan</label><span>${d.Nama_Ruangan||'—'}</span></div>
-    <div class="foto-info-item"><label>Area</label><span>${d.Area_Lantai||'—'}</span></div>
-    <div class="foto-info-item"><label>Item</label><span>${d.Item_Bermasalah||'—'}</span></div>
-    <div class="foto-info-item"><label>Pelapor</label><span>${d.Pelapor||'—'}</span></div>
-    <div class="foto-info-item"><label>Tanggal</label><span>${fmtDate(d.Tanggal_Temuan)}</span></div>
+    <div class="foto-info-item"><label>Status</label><span class="ftag ${sc}">${_status}</span></div>
+    <div class="foto-info-item"><label>Ruangan</label><span>${_ruangan}</span></div>
+    <div class="foto-info-item"><label>Area</label><span>${_area}</span></div>
+    <div class="foto-info-item"><label>Item</label><span>${_item}</span></div>
+    <div class="foto-info-item"><label>Pelapor</label><span>${_pelapor}</span></div>
+    <div class="foto-info-item"><label>Tanggal</label><span>${fmtDate(_tgl)}</span></div>
     ${d.Tanggal_Selesai?`<div class="foto-info-item" style="grid-column:1/-1"><label>Selesai Diperbaiki</label><span style="color:var(--green-dark)">${fmtDate(d.Tanggal_Selesai)}</span></div>`:''}
   `;
 
