@@ -633,7 +633,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="cfg-grid">
     <div class="cfg-field" style="grid-column:1/-1">
       <label>URL Google Apps Script</label>
-      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbwdxiIac0acE_YKj_dOawk3t0AwziKIseE3fTTHjQQGaPql7X2IyA1seqxw6_V0j46Y6g/exec">
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbzYq0tkcerj4PLjFZ3w9bmIrpAC92vwy7rKrwWCNC459QYH9ZtOIqcV5GgKfH3OlpQb/exec">
     </div>
     <div class="cfg-field">
       <label>Bulan</label>
@@ -827,7 +827,13 @@ tbody td{padding:11px 14px;color:var(--text)}
         <h4>Upload foto bukti perbaikan:</h4>
         <p>Foto hasil perbaikan → Upload ke <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">Folder Drive RS ↗</a> → Bagikan → Salin link → Paste di bawah</p>
       </div>
-      <input type="url" id="linkFotoSelesai" placeholder="https://drive.google.com/file/d/...">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn-capture" style="flex:1;font-size:12px;padding:8px" onclick="triggerFotoSelesai('camera')">📷 Kamera</button>
+        <button class="btn-capture" style="flex:1;font-size:12px;padding:8px" onclick="triggerFotoSelesai('gallery')">🖼️ Galeri</button>
+      </div>
+      <img id="previewFotoSelesai" style="display:none;width:100%;border-radius:8px;border:1.5px solid var(--border);max-height:160px;object-fit:cover;margin-bottom:6px">
+      <div id="fnameFotoSelesai" style="display:none;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;margin-bottom:6px"></div>
+      <input type="url" id="linkFotoSelesai" placeholder="atau paste link Google Drive..." style="font-size:12px">
     </div>
     <div class="fg">
       <label>Catatan Teknisi (opsional)</label>
@@ -842,7 +848,7 @@ tbody td{padding:11px 14px;color:var(--text)}
 <script>
 // ── STATE ─────────────────────────────────────────────────
 const S={
-  apiUrl:'https://script.google.com/macros/s/AKfycbwdxiIac0acE_YKj_dOawk3t0AwziKIseE3fTTHjQQGaPql7X2IyA1seqxw6_V0j46Y6g/exec',
+  apiUrl:'https://script.google.com/macros/s/AKfycbzYq0tkcerj4PLjFZ3w9bmIrpAC92vwy7rKrwWCNC459QYH9ZtOIqcV5GgKfH3OlpQb/exec',
   bulan:String(new Date().getMonth()+1),
   tahun:String(new Date().getFullYear()),
   rooms:[],summary:null,foto:[],rekap:[],
@@ -1228,26 +1234,54 @@ function triggerGallery(key){
   inp.click();
 }
 
-function handleFileSelected(inp, key){
+async function handleFileSelected(inp, key){
   if(!inp.files||!inp.files[0]) return;
   const file=inp.files[0];
-  // Check file size - max 5MB
-  if(file.size > 5*1024*1024){ toast('Foto terlalu besar, max 5MB','error'); return; }
+  if(file.size > 10*1024*1024){ toast('Foto terlalu besar, max 10MB','error'); return; }
+
   const reader=new FileReader();
-  reader.onload=e=>{
+  reader.onload=async e=>{
     const b64=e.target.result;
-    dmgData[key].photoBase64=b64;
-    dmgData[key].photoName=file.name;
-    dmgData[key].link=''; // clear link since using direct upload
-    // Show preview
+    // Show preview immediately
     const prev=document.getElementById('dmg-preview-'+key);
     prev.src=b64; prev.classList.add('show');
-    // Show filename badge
+
+    // Show uploading status
     const fname=document.getElementById('dmg-fname-'+key);
-    fname.textContent='✅ '+file.name+' ('+Math.round(file.size/1024)+'KB)';
+    fname.innerHTML='⏳ Mengupload ke Google Drive...';
     fname.style.display='';
-    // Show remove button
-    document.getElementById('dmg-remove-'+key).style.display='';
+    fname.style.color='var(--orange)';
+
+    try {
+      // Upload ke Drive via Apps Script
+      const res = await apiPost({
+        action:   'uploadFoto',
+        base64:   b64,
+        mimeType: file.type || 'image/jpeg',
+        fileName: file.name
+      });
+
+      if(res.ok){
+        dmgData[key].photoBase64 = b64;
+        dmgData[key].photoName   = res.fileName;
+        dmgData[key].link        = res.viewUrl;  // simpan link Drive
+        dmgData[key].thumbUrl    = res.thumbUrl;
+
+        fname.innerHTML='✅ '+res.fileName+' — tersimpan di Drive';
+        fname.style.color='var(--green-dark)';
+        document.getElementById('dmg-remove-'+key).style.display='';
+        toast('📷 Foto berhasil diupload ke Drive!','success');
+      } else {
+        throw new Error(res.error||'Upload gagal');
+      }
+    } catch(err){
+      fname.innerHTML='❌ Upload gagal: '+err.message;
+      fname.style.color='var(--red)';
+      // Simpan base64 sebagai fallback
+      dmgData[key].photoBase64=b64;
+      dmgData[key].photoName=file.name;
+      toast('❌ Upload gagal, foto disimpan lokal','error');
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -1255,10 +1289,49 @@ function handleFileSelected(inp, key){
 function removeFoto(key){
   dmgData[key].photoBase64='';
   dmgData[key].photoName='';
+  dmgData[key].link='';
   const prev=document.getElementById('dmg-preview-'+key);
   prev.src=''; prev.classList.remove('show');
   document.getElementById('dmg-fname-'+key).style.display='none';
   document.getElementById('dmg-remove-'+key).style.display='none';
+}
+
+function triggerFotoSelesai(mode){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  if(mode==='camera') inp.capture='environment';
+  inp.style.display='none';
+  document.body.appendChild(inp);
+  inp.onchange=async()=>{
+    if(!inp.files||!inp.files[0]){ document.body.removeChild(inp); return; }
+    const file=inp.files[0];
+    document.body.removeChild(inp);
+    if(file.size>10*1024*1024){ toast('Foto terlalu besar, max 10MB','error'); return; }
+    const reader=new FileReader();
+    reader.onload=async e=>{
+      const b64=e.target.result;
+      // Preview
+      const prev=document.getElementById('previewFotoSelesai');
+      prev.src=b64; prev.style.display='block';
+      const fname=document.getElementById('fnameFotoSelesai');
+      fname.innerHTML='⏳ Mengupload ke Google Drive...';
+      fname.style.cssText='display:block;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;color:var(--orange);background:var(--orange-light)';
+      try {
+        const res=await apiPost({action:'uploadFoto',base64:b64,mimeType:file.type||'image/jpeg',fileName:'bukti_selesai_'+Date.now()+'.jpg'});
+        if(res.ok){
+          document.getElementById('linkFotoSelesai').value=res.viewUrl;
+          fname.innerHTML='✅ '+res.fileName+' — tersimpan di Drive';
+          fname.style.cssText='display:block;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;color:var(--green-dark);background:var(--green-light)';
+          toast('✅ Foto bukti berhasil diupload!','success');
+        } else throw new Error(res.error);
+      } catch(err){
+        fname.innerHTML='❌ Upload gagal: '+err.message;
+        fname.style.cssText='display:block;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;color:var(--red);background:var(--red-light)';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
 }
 
 function resetCk(){
