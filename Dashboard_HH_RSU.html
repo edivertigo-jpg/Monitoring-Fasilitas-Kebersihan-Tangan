@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0077B6">
+<meta name="description" content="Dashboard Monitoring Fasilitas Hand Hygiene RSU Surya Husadha Nusa Dua">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="HH Monitor">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Monitoring HH — RSU Surya Husadha</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#0077B6;
+  --primary-dark:#005F96;
+  --primary-light:#E8F4FD;
+  --primary-mid:#CAE5F5;
+  --green:#2DC653;
+  --green-dark:#1fa340;
+  --green-light:#E8F7ED;
+  --teal:#00B4D8;
+  --teal-light:#E0F7FC;
+  --orange:#F4820A;
+  --orange-light:#FEF3E2;
+  --red:#E53935;
+  --red-light:#FEECEB;
+  --white:#FFFFFF;
+  --bg:#F0F6FC;
+  --surface:#FFFFFF;
+  --surface2:#F7FAFD;
+  --border:#D6E8F5;
+  --border2:#C2DDF0;
+  --text:#0D2137;
+  --text2:#3A5C78;
+  --muted:#7B9BB5;
+  --shadow:0 2px 12px rgba(0,119,182,.10);
+  --shadow-md:0 4px 24px rgba(0,119,182,.14);
+  --radius:14px;
+  --radius-sm:9px;
+  --font:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+
+/* TOPBAR */
+.topbar{
+  background:var(--white);border-bottom:2px solid var(--border);
+  position:sticky;top:0;z-index:50;
+  box-shadow:0 2px 16px rgba(0,119,182,.08);
+}
+.topbar-inner{
+  max-width:1200px;margin:0 auto;padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:68px;gap:12px;
+}
+.logo-block{display:flex;align-items:center;gap:12px}
+.logo-img{height:46px;width:auto;flex-shrink:0;object-fit:contain}
+.logo-divider{width:1.5px;height:36px;background:var(--border2);flex-shrink:0}
+.logo-subtitle{font-size:14px;font-weight:800;color:var(--primary);letter-spacing:.3px;line-height:1.3}
+.logo-subtitle small{display:block;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.2px;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.badge-live{
+  display:flex;align-items:center;gap:5px;
+  background:var(--green-light);border:1.5px solid #a8e6be;
+  color:var(--green-dark);font-size:11px;font-weight:700;
+  padding:4px 10px;border-radius:20px;
+}
+.badge-live::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+.badge-offline{
+  display:flex;align-items:center;gap:5px;
+  background:var(--red-light);border:1.5px solid #f5bcba;
+  color:var(--red);font-size:11px;font-weight:700;
+  padding:4px 10px;border-radius:20px;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.btn-cfg{
+  background:var(--primary-light);border:1.5px solid var(--border2);
+  color:var(--primary);font-size:12px;font-weight:600;font-family:var(--font);
+  padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .2s;
+}
+.btn-cfg:hover{background:var(--primary);color:white}
+
+/* MAIN WRAP */
+.wrap{max-width:1200px;margin:0 auto;padding:20px 16px 90px}
+
+/* CONFIG PANEL */
+.cfg-panel{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:20px;margin-bottom:20px;
+  display:none;box-shadow:var(--shadow);
+}
+.cfg-panel.open{display:block;animation:fadeDown .2s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.cfg-panel h3{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.cfg-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:600px){.cfg-grid{grid-template-columns:2fr 1fr 1fr}}
+.cfg-field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.cfg-field input,.cfg-field select{
+  width:100%;background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--text);font-size:12px;font-family:var(--mono);
+  padding:9px 12px;border-radius:var(--radius-sm);outline:none;transition:border-color .2s;
+}
+.cfg-field input:focus,.cfg-field select:focus{border-color:var(--primary);background:white}
+.cfg-field select option{background:white}
+.btn-connect{
+  background:linear-gradient(135deg,var(--primary),var(--teal));
+  color:white;border:none;font-family:var(--font);font-size:13px;font-weight:700;
+  padding:10px 24px;border-radius:var(--radius-sm);cursor:pointer;transition:opacity .2s;margin-top:4px;
+  box-shadow:0 3px 12px rgba(0,119,182,.3);
+}
+.btn-connect:hover{opacity:.88}
+.conn-msg{font-size:11px;padding:7px 12px;border-radius:6px;margin-top:8px;font-family:var(--mono);display:none}
+.conn-msg.ok{background:var(--green-light);color:var(--green-dark);border:1px solid #a8e6be;display:block}
+.conn-msg.err{background:var(--red-light);color:var(--red);border:1px solid #f5bcba;display:block}
+.gdrive-notice{
+  margin-top:12px;padding:10px 14px;
+  background:#FFF8E1;border:1.5px solid #FFD54F;
+  border-radius:var(--radius-sm);font-size:11px;color:#795548;
+  display:flex;gap:8px;align-items:flex-start;line-height:1.6;
+}
+.gdrive-notice a{color:var(--primary);font-weight:600}
+
+/* MONTH + YEAR NAV */
+.nav-bar{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:12px 16px;
+  margin-bottom:20px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.nav-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+.month-scroll{display:flex;gap:6px;overflow-x:auto;flex:1;scrollbar-width:none;padding:2px 0}
+.month-scroll::-webkit-scrollbar{display:none}
+.mbtn{
+  flex-shrink:0;padding:6px 14px;
+  background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--muted);font-size:12px;font-weight:600;
+  border-radius:20px;cursor:pointer;transition:all .2s;font-family:var(--font);
+  white-space:nowrap;
+}
+.mbtn:hover{border-color:var(--primary);color:var(--primary)}
+.mbtn.active{
+  background:var(--primary);border-color:var(--primary);
+  color:white;box-shadow:0 2px 10px rgba(0,119,182,.35);
+}
+.year-sel{
+  background:var(--primary-light);border:1.5px solid var(--border2);
+  color:var(--primary);font-size:12px;font-weight:700;font-family:var(--mono);
+  padding:6px 10px;border-radius:8px;outline:none;cursor:pointer;flex-shrink:0;
+}
+.year-sel option{background:white;color:var(--text)}
+.month-dd{
+  background:var(--primary-light);border:1.5px solid var(--border2);
+  color:var(--primary);font-size:13px;font-weight:700;font-family:var(--font);
+  padding:7px 12px;border-radius:8px;outline:none;cursor:pointer;
+}
+.month-dd option{background:white;color:var(--text)}
+
+/* TABS */
+.tabs{
+  display:flex;gap:0;
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);margin-bottom:20px;
+  overflow-x:auto;scrollbar-width:none;
+  box-shadow:var(--shadow);
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{
+  flex:1;min-width:100px;padding:12px 16px;font-family:var(--font);
+  font-size:12px;font-weight:600;color:var(--muted);background:none;
+  border:none;border-bottom:3px solid transparent;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);background:var(--primary-light)}
+.tab-btn:hover:not(.active){color:var(--primary);background:var(--surface2)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* STAT CARDS */
+.stat-grid{display:grid;gap:14px;margin-bottom:24px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:700px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+.stat-card{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:18px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.sc-blue::before{background:linear-gradient(90deg,var(--primary),var(--teal))}
+.sc-green::before{background:linear-gradient(90deg,var(--green),#00e676)}
+.sc-orange::before{background:linear-gradient(90deg,var(--orange),#ffb300)}
+.sc-teal::before{background:linear-gradient(90deg,var(--teal),#00e5ff)}
+.stat-icon{font-size:24px;margin-bottom:10px}
+.stat-val{font-size:28px;font-weight:800;line-height:1;font-family:var(--mono);margin-bottom:5px}
+.sc-blue .stat-val{color:var(--primary)}
+.sc-green .stat-val{color:var(--green-dark)}
+.sc-orange .stat-val{color:var(--orange)}
+.sc-teal .stat-val{color:#0097a7}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.sec-title{
+  font-size:13px;font-weight:700;color:var(--text);
+  display:flex;align-items:center;gap:8px;
+}
+.sec-title::before{content:'';display:block;width:3px;height:18px;background:var(--primary);border-radius:2px}
+
+/* AREA CARDS */
+.area-grid{display:grid;gap:14px;margin-bottom:24px;grid-template-columns:1fr}
+@media(min-width:580px){.area-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:900px){.area-grid{grid-template-columns:repeat(3,1fr)}}
+.area-card{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);
+  transition:transform .2s,box-shadow .2s;
+}
+.area-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.area-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.area-name{font-size:13px;font-weight:700;color:var(--text)}
+.area-pct{font-size:20px;font-weight:800;font-family:var(--mono)}
+.area-bar-track{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:7px;border:1px solid var(--border)}
+.area-bar-fill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.area-meta{font-size:11px;color:var(--muted)}
+
+/* ITEM GRID */
+.item-grid{display:grid;gap:10px;margin-bottom:24px}
+.item-row{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:13px 16px;
+  display:flex;align-items:center;gap:13px;box-shadow:var(--shadow);
+}
+.item-icon{font-size:20px;flex-shrink:0}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-bar-wrap{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--border)}
+.item-bar{height:100%;background:linear-gradient(90deg,var(--primary),var(--teal));border-radius:3px;transition:width 1.2s ease}
+.item-pct{font-size:13px;font-weight:700;font-family:var(--mono);flex-shrink:0;color:var(--primary);min-width:40px;text-align:right}
+
+/* FOTO CARDS */
+.foto-list{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.foto-card{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+  box-shadow:var(--shadow);transition:box-shadow .2s;
+}
+.foto-card:hover{box-shadow:var(--shadow-md)}
+.foto-card.fc-dilaporkan{border-left:4px solid var(--red)}
+.foto-card.fc-perbaikan{border-left:4px solid var(--orange)}
+.foto-card.fc-selesai{border-left:4px solid var(--green);background:linear-gradient(to right,#f0fdf4,white)}
+.foto-top{display:flex;gap:12px;align-items:flex-start}
+.foto-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.foto-dot.dilaporkan{background:var(--red)}
+.foto-dot.perbaikan{background:var(--orange)}
+.foto-dot.selesai{background:var(--green)}
+.foto-body{flex:1;min-width:0}
+.foto-room{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.foto-item-txt{font-size:11px;color:var(--muted);margin-bottom:8px}
+.foto-tags{display:flex;flex-wrap:wrap;gap:5px}
+.ftag{
+  font-size:10px;padding:3px 9px;border-radius:20px;
+  background:var(--surface2);border:1px solid var(--border);
+  font-family:var(--mono);color:var(--text2);font-weight:500;
+}
+.ftag.t-merah{background:var(--red-light);border-color:#f5bcba;color:var(--red)}
+.ftag.t-orange{background:var(--orange-light);border-color:#f8c98a;color:var(--orange)}
+.ftag.t-hijau{background:var(--green-light);border-color:#a8e6be;color:var(--green-dark)}
+.foto-desc{font-size:11px;color:var(--muted);margin-top:6px;font-style:italic;line-height:1.5}
+
+/* STEPPER */
+.stepper{
+  display:flex;align-items:center;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:10px;padding:12px 16px;
+}
+.step-item{display:flex;align-items:center;gap:7px;flex:1;font-size:10px;font-weight:600;color:var(--muted)}
+.step-item.s-done{color:var(--green-dark)}
+.step-item.s-active{color:var(--orange)}
+.step-circle{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;border:2px solid var(--border);
+  background:white;color:var(--muted);transition:all .3s;
+}
+.step-item.s-done .step-circle{background:var(--green);border-color:var(--green);color:white}
+.step-item.s-active .step-circle{background:var(--orange);border-color:var(--orange);color:white;box-shadow:0 0 10px rgba(244,130,10,.4)}
+.step-label{display:none}
+@media(min-width:400px){.step-label{display:inline}}
+.step-line{flex:1;height:2px;background:var(--border);max-width:40px;border-radius:1px;transition:background .3s}
+.step-line.done{background:var(--green)}
+
+/* ACTION BAR */
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1.5px solid var(--border)}
+.btn-act{
+  flex:1;min-width:110px;padding:9px 12px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);background:var(--surface2);
+  color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.btn-act:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn-perbaikan{border-color:#f8c98a;color:var(--orange);background:var(--orange-light)}
+.btn-perbaikan:hover{background:#fde9c9}
+.btn-selesai{border-color:#a8e6be;color:var(--green-dark);background:var(--green-light)}
+.btn-selesai:hover{background:#d4f5e0}
+.btn-foto-act{border-color:var(--border2);color:var(--primary);background:var(--primary-light)}
+.btn-foto-act:hover{background:var(--primary-mid)}
+.selesai-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;color:var(--green-dark);
+  background:var(--green-light);border:1.5px solid #a8e6be;
+  padding:6px 12px;border-radius:20px;
+}
+
+/* ROOM LIST */
+.room-item{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  margin-bottom:8px;transition:all .15s;
+}
+.room-item:hover{border-color:var(--primary);background:var(--primary-light);transform:translateX(2px)}
+.room-area-hdr{
+  font-size:11px;font-weight:700;color:var(--primary);
+  text-transform:uppercase;letter-spacing:.5px;
+  margin-bottom:8px;padding:7px 12px;
+  background:var(--primary-light);border-radius:7px;
+  border-left:3px solid var(--primary);
+}
+
+/* TABLE */
+.table-wrap{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;box-shadow:var(--shadow)}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--primary);color:white;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:11px 14px;text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:hover{background:var(--primary-light)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:11px 14px;color:var(--text)}
+.td-room{font-weight:600}
+.td-area{color:var(--muted);font-size:11px}
+.td-date{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.badge-st{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-st.patuh{background:var(--green-light);color:var(--green-dark);border:1px solid #a8e6be}
+.badge-st.perhatian{background:var(--orange-light);color:var(--orange);border:1px solid #f8c98a}
+.badge-st.tidak{background:var(--red-light);color:var(--red);border:1px solid #f5bcba}
+.skor-val{font-family:var(--mono);font-weight:700}
+
+/* FAB */
+.fab{
+  position:fixed;bottom:22px;right:20px;width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),var(--teal));
+  border:none;color:white;font-size:26px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,119,182,.45);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .2s,box-shadow .2s;z-index:100;
+}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(0,119,182,.6)}
+.fab:active{transform:scale(.95)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(13,33,55,.5);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal-overlay.open{display:flex}
+.modal{
+  background:white;border-top:3px solid var(--primary);
+  border-radius:20px 20px 0 0;width:100%;max-width:560px;
+  max-height:92vh;overflow-y:auto;padding:24px 20px;
+  animation:slideUp .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 -8px 40px rgba(0,119,182,.18);
+}
+@media(min-width:600px){.modal{border-radius:16px;border-top:none;border:2px solid var(--border);box-shadow:var(--shadow-md)}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:16px;font-weight:800;color:var(--text)}
+.modal-close{
+  background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--muted);width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.modal-close:hover{background:var(--red-light);border-color:var(--red);color:var(--red)}
+.fg{margin-bottom:15px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fg select,.fg input,.fg textarea{
+  width:100%;background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--text);font-family:var(--font);font-size:13px;
+  padding:10px 13px;border-radius:var(--radius-sm);outline:none;
+  transition:border-color .2s,background .2s;resize:vertical;
+}
+.fg select:focus,.fg input:focus,.fg textarea:focus{border-color:var(--primary);background:white;box-shadow:0 0 0 3px rgba(0,119,182,.08)}
+.fg select option{background:white}
+.checklist-grid{display:flex;flex-direction:column;gap:8px}
+.check-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 13px;gap:10px;
+  transition:border-color .2s;
+}
+.check-item.ck-yes{border-color:#a8e6be;background:var(--green-light)}
+.check-item.ck-no{border-color:#f5bcba;background:var(--red-light)}
+.check-item-label{font-size:12px;flex:1;color:var(--text);font-weight:500}
+.check-toggle{display:flex;gap:6px}
+.toggle-btn{
+  padding:5px 13px;border-radius:6px;border:1.5px solid var(--border);
+  background:white;color:var(--muted);font-size:12px;font-weight:700;
+  cursor:pointer;font-family:var(--font);transition:all .15s;
+}
+.toggle-btn.ay{background:var(--green);border-color:var(--green);color:white}
+.toggle-btn.an{background:var(--red);border-color:var(--red);color:white}
+.drive-box{
+  display:flex;align-items:flex-start;gap:12px;
+  background:#FFF8E1;border:1.5px dashed #FFD54F;
+  border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;
+}
+.drive-box-icon{font-size:26px;flex-shrink:0}
+.drive-box h4{font-size:12px;font-weight:700;color:#5D4037;margin-bottom:3px}
+.drive-box p{font-size:10px;color:#795548;line-height:1.6}
+.drive-box a{color:var(--primary);font-weight:600}
+.btn-submit{
+  width:100%;background:linear-gradient(135deg,var(--primary),var(--teal));
+  border:none;color:white;font-family:var(--font);font-size:14px;font-weight:700;
+  padding:13px;border-radius:var(--radius-sm);cursor:pointer;transition:opacity .2s;margin-top:6px;
+  box-shadow:0 3px 14px rgba(0,119,182,.3);
+}
+.btn-submit:hover{opacity:.88}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed}
+
+/* STATUS MODAL */
+.status-option{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.status-radio{
+  display:flex;align-items:center;gap:10px;padding:13px 15px;
+  border-radius:var(--radius-sm);border:1.5px solid var(--border);
+  background:var(--surface2);cursor:pointer;transition:all .2s;
+}
+.status-radio:hover{border-color:var(--primary)}
+.status-radio.sel-d{border-color:var(--red);background:var(--red-light)}
+.status-radio.sel-p{border-color:var(--orange);background:var(--orange-light)}
+.status-radio.sel-s{border-color:var(--green);background:var(--green-light)}
+.srdot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;transition:all .2s}
+.status-radio.sel-d .srdot{background:var(--red);border-color:var(--red)}
+.status-radio.sel-p .srdot{background:var(--orange);border-color:var(--orange)}
+.status-radio.sel-s .srdot{background:var(--green);border-color:var(--green)}
+.sr-label{font-size:13px;font-weight:600;color:var(--text)}
+
+/* FILTER CHIPS */
+.filter-chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.chip{
+  padding:7px 16px;background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--muted);font-size:11px;font-weight:600;border-radius:20px;
+  cursor:pointer;transition:all .2s;font-family:var(--font);
+}
+.chip:hover{border-color:var(--primary);color:var(--primary)}
+.chip.active{background:var(--primary);border-color:var(--primary);color:white}
+.chip.chip-red.active{background:var(--red);border-color:var(--red)}
+.chip.chip-orange.active{background:var(--orange);border-color:var(--orange)}
+.chip.chip-green.active{background:var(--green);border-color:var(--green)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .ei{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:13px;line-height:1.6}
+.empty-state strong{color:var(--text)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:var(--text);color:white;padding:10px 20px;
+  border-radius:10px;font-size:13px;font-weight:600;z-index:300;
+  opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;
+  white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.2);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.toast.success{background:var(--green-dark)}
+.toast.error{background:var(--red)}
+
+/* PWA install banner */
+.pwa-banner{
+  display:none;background:linear-gradient(135deg,var(--primary),var(--teal));
+  color:white;padding:12px 16px;border-radius:var(--radius);
+  margin-bottom:16px;align-items:center;justify-content:space-between;gap:10px;
+  box-shadow:0 3px 14px rgba(0,119,182,.3);
+}
+.pwa-banner.show{display:flex}
+.pwa-banner p{font-size:12px;font-weight:600}
+.pwa-banner p span{font-size:11px;font-weight:400;opacity:.85}
+.btn-install{background:white;color:var(--primary);border:none;font-family:var(--font);font-size:12px;font-weight:700;padding:7px 16px;border-radius:7px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.btn-dismiss{background:none;border:none;color:white;opacity:.7;cursor:pointer;font-size:18px;flex-shrink:0}
+
+@media(max-width:480px){.stat-val{font-size:22px}.modal{padding:20px 16px}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo-block">
+      <img src="SH.png" class="logo-img" alt="Surya Husadha">
+      <div class="logo-divider"></div>
+      <div class="logo-subtitle">
+        MONITORING FASILITAS HAND HYGIENE
+        <small>KOMITE PPI · RSU SURYA HUSADHA NUSA DUA</small>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="liveStatus" class="badge-offline">⬤ OFFLINE</div>
+      <button class="btn-cfg" onclick="toggleCfg()">⚙ Koneksi</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- PWA INSTALL BANNER -->
+<div class="pwa-banner" id="pwaBanner">
+  <div>
+    <p>📲 Install sebagai App<br><span>Buka dashboard lebih cepat dari homescreen HP</span></p>
+  </div>
+  <button class="btn-install" onclick="installPWA()">Install</button>
+  <button class="btn-dismiss" onclick="dismissPWA()">✕</button>
+</div>
+
+<!-- CONFIG PANEL -->
+<div class="cfg-panel" id="cfgPanel">
+  <h3>⚙ Koneksi Google Sheets</h3>
+  <div class="cfg-grid">
+    <div class="cfg-field" style="grid-column:1/-1">
+      <label>URL Google Apps Script</label>
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbw7KagE2D58j6b_U3IXHgFcr66oQtbQ1YbsomESygE3dYqDz3b0TEawYubbMQ5qYrLM2Q/exec">
+    </div>
+    <div class="cfg-field">
+      <label>Bulan</label>
+      <select id="cfgBulan"></select>
+    </div>
+    <div class="cfg-field">
+      <label>Tahun</label>
+      <select id="cfgTahun"></select>
+    </div>
+  </div>
+  <button class="btn-connect" onclick="connectAPI()">🔗 Hubungkan & Load Data</button>
+  <div class="conn-msg" id="connMsg"></div>
+  <div class="gdrive-notice">
+    <span>📁</span>
+    <div>Folder bukti foto:
+      <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">
+        Buka Folder Google Drive RS
+      </a> — Upload foto → klik kanan → Bagikan → Siapa saja punya link → Salin link
+    </div>
+  </div>
+</div>
+
+<!-- MONTH + YEAR NAV -->
+<div class="nav-bar">
+  <span class="nav-label">Periode:</span>
+  <select class="month-dd" id="monthDd"></select>
+  <select class="year-sel" id="yearSel"></select>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('input')">✏️ Input Harian</button>
+  <button class="tab-btn" onclick="switchTab('foto')">📸 Kerusakan</button>
+  <button class="tab-btn" onclick="switchTab('rekap')">📋 Rekap</button>
+</div>
+
+<!-- TAB: DASHBOARD -->
+<div class="tab-panel active" id="tab-dashboard">
+  <div class="stat-grid">
+    <div class="stat-card sc-blue"><div class="stat-icon">🏥</div><div class="stat-val" id="stTotal">105</div><div class="stat-label">Total Lokasi HH</div></div>
+    <div class="stat-card sc-green"><div class="stat-icon">✅</div><div class="stat-val" id="stDiisi">—</div><div class="stat-label">Sudah Diisi</div></div>
+    <div class="stat-card sc-orange"><div class="stat-icon">📊</div><div class="stat-val" id="stPct">—%</div><div class="stat-label">Rata Kepatuhan</div></div>
+    <div class="stat-card sc-teal"><div class="stat-icon">🔧</div><div class="stat-val" id="stFoto">—</div><div class="stat-label">Kerusakan Aktif</div></div>
+  </div>
+  <div class="sec-hdr"><div class="sec-title">Kepatuhan Per Area / Lantai</div></div>
+  <div class="area-grid" id="areaGrid">
+    <div class="empty-state" style="grid-column:1/-1"><div class="ei">📡</div><p>Klik <strong>⚙ Koneksi</strong> untuk<br>menghubungkan ke Google Sheets.</p></div>
+  </div>
+  <div class="sec-hdr"><div class="sec-title">Kepatuhan Per Item Fasilitas</div></div>
+  <div class="item-grid" id="itemGrid"></div>
+</div>
+
+<!-- TAB: INPUT HARIAN -->
+<div class="tab-panel" id="tab-input">
+  <div style="background:var(--primary-light);border:1.5px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.7">
+    📝 Pilih ruangan untuk mengisi checklist harian. Data langsung tersimpan ke Google Sheets.
+  </div>
+  <div class="fg"><label>Cari Ruangan</label><input type="text" id="searchRoom" placeholder="Ketik nama ruangan..." oninput="filterRooms()"></div>
+  <div class="fg"><label>Observer / Petugas</label><input type="text" id="obsName" placeholder="Nama petugas yang bertugas hari ini"></div>
+  <div id="roomListWrap"><div class="empty-state"><div class="ei">🔌</div><p>Hubungkan ke Google Sheets dulu.</p></div></div>
+</div>
+
+<!-- TAB: FOTO KERUSAKAN -->
+<div class="tab-panel" id="tab-foto">
+  <div class="filter-chips">
+    <button class="chip active" onclick="filterFoto('semua',this)">🔍 Semua</button>
+    <button class="chip chip-red" onclick="filterFoto('Dilaporkan',this)">🔴 Dilaporkan</button>
+    <button class="chip chip-orange" onclick="filterFoto('Dalam Perbaikan',this)">🟠 Perbaikan</button>
+    <button class="chip chip-green" onclick="filterFoto('Selesai Diperbaiki',this)">🟢 Selesai</button>
+  </div>
+  <div class="foto-list" id="fotoList">
+    <div class="empty-state"><div class="ei">📷</div><p>Belum ada laporan kerusakan.<br>Tap tombol <strong>+</strong> untuk melaporkan.</p></div>
+  </div>
+</div>
+
+<!-- TAB: REKAP -->
+<div class="tab-panel" id="tab-rekap">
+  <div class="table-wrap"><div class="table-scroll">
+    <table>
+      <thead><tr><th>Ruangan</th><th>Area</th><th>Tanggal</th><th>Observer</th><th>Skor</th><th>Status</th></tr></thead>
+      <tbody id="rekapTb"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Belum ada data.</td></tr></tbody>
+    </table>
+  </div></div>
+</div>
+
+</div><!-- /wrap -->
+
+<button class="fab" id="fab" onclick="openInputModal()">+</button>
+
+<!-- MODAL: Input Checklist -->
+<div class="modal-overlay" id="mInput">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">✏️ Input Checklist Harian</div><button class="modal-close" onclick="closeModal('mInput')">✕</button></div>
+    <div class="fg"><label>Ruangan</label><select id="mRoom"><option value="">— Pilih Ruangan —</option></select></div>
+    <div class="fg"><label>Observer / Petugas</label><input type="text" id="mObs" placeholder="Nama petugas"></div>
+    <div class="fg"><label>Tanggal</label><input type="date" id="mTgl"></div>
+    <div class="fg"><label>Checklist Fasilitas (√ = Ada/Baik · ✗ = Tidak Ada/Rusak)</label><div class="checklist-grid" id="ckGrid"></div></div>
+    <div class="fg"><label>Keterangan</label><textarea id="mKet" rows="2" placeholder="Catatan temuan atau tindakan..."></textarea></div>
+    <button class="btn-submit" id="btnSI" onclick="submitChecklist()">💾 Simpan ke Google Sheets</button>
+  </div>
+</div>
+
+<!-- MODAL: Laporan Foto -->
+<div class="modal-overlay" id="mFoto">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">📸 Laporan Kerusakan</div><button class="modal-close" onclick="closeModal('mFoto')">✕</button></div>
+    <div class="fg"><label>Ruangan</label><select id="fRoom"><option value="">— Pilih Ruangan —</option></select></div>
+    <div class="fg"><label>Item Bermasalah</label>
+      <select id="fItem">
+        <option value="">— Pilih Item —</option>
+        <option>Sabun Habis</option><option>Tissue Habis</option>
+        <option>Wastafel Kotor</option><option>Wastafel Rusak / Bocor</option>
+        <option>Tempat Sampah Penuh</option><option>Tempat Sampah Rusak</option>
+        <option>Poster Tidak Ada</option><option>Poster Rusak / Kotor</option>
+        <option>Lainnya</option>
+      </select>
+    </div>
+    <div class="fg"><label>Deskripsi Kerusakan</label><textarea id="fDesc" rows="2" placeholder="Jelaskan kondisi..."></textarea></div>
+    <div class="fg"><label>Nama Pelapor</label><input type="text" id="fPelapor" placeholder="Nama petugas pelapor"></div>
+    <div class="fg">
+      <label>Bukti Foto (Link Google Drive)</label>
+      <div class="drive-box">
+        <div class="drive-box-icon">📁</div>
+        <div>
+          <h4>Cara upload foto:</h4>
+          <p>1. Foto kerusakan dengan HP<br>
+          2. Buka <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">Folder Drive RS ↗</a> → Upload<br>
+          3. Klik kanan file → Bagikan → Siapa saja punya link → Salin<br>
+          4. Paste link di bawah</p>
+        </div>
+      </div>
+      <input type="url" id="fLink" placeholder="https://drive.google.com/file/d/...">
+    </div>
+    <div class="fg"><label>Keterangan Tambahan</label><textarea id="fKet" rows="2" placeholder="Tindakan awal yang diambil..."></textarea></div>
+    <button class="btn-submit" id="btnSF" onclick="submitFoto()">📤 Kirim Laporan</button>
+  </div>
+</div>
+
+<!-- MODAL: Update Status -->
+<div class="modal-overlay" id="mStatus">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="mStTitle">🔧 Update Status</div>
+      <button class="modal-close" onclick="closeModal('mStatus')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)" id="mStDesc"></div>
+    <div class="fg">
+      <label>Status Perbaikan</label>
+      <div class="status-option">
+        <label class="status-radio" onclick="pickStatus('Dilaporkan',this)"><div class="srdot"></div><span class="sr-label">🔴 Dilaporkan — Menunggu tindakan</span></label>
+        <label class="status-radio" onclick="pickStatus('Dalam Perbaikan',this)"><div class="srdot"></div><span class="sr-label">🟠 Dalam Perbaikan — Sedang dikerjakan teknisi</span></label>
+        <label class="status-radio" onclick="pickStatus('Selesai Diperbaiki',this)"><div class="srdot"></div><span class="sr-label">🟢 Selesai Diperbaiki — Sudah beres ✓</span></label>
+      </div>
+    </div>
+    <div class="fg" id="tglWrap" style="display:none">
+      <label>Tanggal Selesai</label>
+      <input type="date" id="tglSelesai">
+    </div>
+    <div class="fg">
+      <label>Catatan Teknisi (opsional)</label>
+      <textarea id="catatanTek" rows="2" placeholder="Apa yang sudah dikerjakan..."></textarea>
+    </div>
+    <button class="btn-submit" id="btnSS" onclick="submitStatus()">✅ Simpan Status</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────
+const S={
+  apiUrl:'https://script.google.com/macros/s/AKfycbw7KagE2D58j6b_U3IXHgFcr66oQtbQ1YbsomESygE3dYqDz3b0TEawYubbMQ5qYrLM2Q/exec',
+  bulan:String(new Date().getMonth()+1),
+  tahun:String(new Date().getFullYear()),
+  rooms:[],summary:null,foto:[],rekap:[],
+  fotoFilter:'semua',connected:false,
+  upId:null,upStatus:null
+};
+const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const ITEMS=[
+  {key:'Sabun',icon:'🧼',label:'Tersedia sabun di tempat cuci tangan'},
+  {key:'Tissue',icon:'🧻',label:'Tersedia tissue di tempat cuci tangan'},
+  {key:'Wastafel_Bersih',icon:'✨',label:'Fasilitas cuci tangan bersih'},
+  {key:'Wastafel_Bebas',icon:'🚿',label:'Wastafel bebas dari peralatan tidak perlu'},
+  {key:'Tempat_Sampah',icon:'🗑️',label:'Tersedia tempat sampah injak'},
+  {key:'Poster',icon:'📋',label:'Terpasang poster cuci tangan'},
+];
+const AREA_CLR={
+  'Basemant':{g:'linear-gradient(90deg,#1565C0,#1e88e5)',c:'#1565C0'},
+  'Lobby':{g:'linear-gradient(90deg,#0077B6,#00B4D8)',c:'#0077B6'},
+  'Lantai 1':{g:'linear-gradient(90deg,#1B5E20,#2DC653)',c:'#1B5E20'},
+  'Lantai 2':{g:'linear-gradient(90deg,#00695C,#00BFA5)',c:'#00695C'},
+  'Lantai 3':{g:'linear-gradient(90deg,#E65100,#F4820A)',c:'#E65100'},
+  'Lantai 4':{g:'linear-gradient(90deg,#4527A0,#7E57C2)',c:'#4527A0'},
+};
+
+// PWA
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  if(!localStorage.getItem('pwa_dismissed')) document.getElementById('pwaBanner').classList.add('show');
+});
+function installPWA(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{deferredPrompt=null; document.getElementById('pwaBanner').classList.remove('show');}); } }
+function dismissPWA(){ document.getElementById('pwaBanner').classList.remove('show'); localStorage.setItem('pwa_dismissed','1'); }
+
+// ── INIT ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  S.apiUrl=localStorage.getItem('hh_api')||S.apiUrl;
+  S.bulan =localStorage.getItem('hh_bln')||S.bulan;
+  S.tahun =localStorage.getItem('hh_thn')||S.tahun;
+  document.getElementById('cfgUrl').value=S.apiUrl;
+  document.getElementById('mTgl').value=new Date().toISOString().split('T')[0];
+  document.getElementById('tglSelesai').value=new Date().toISOString().split('T')[0];
+  buildDropdowns();
+  buildMonthNav();
+  buildChecklistUI();
+  buildItemGrid();
+  if(S.apiUrl) connectAPI(true);
+  // Service Worker
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+});
+
+function buildDropdowns(){
+  const cur=new Date().getFullYear();
+  ['cfgBulan'].forEach(id=>{
+    document.getElementById(id).innerHTML=MONTHS.map((m,i)=>`<option value="${i+1}"${String(i+1)===S.bulan?' selected':''}>${m}</option>`).join('');
+  });
+  ['cfgTahun'].forEach(id=>{
+    let o=''; for(let y=cur-2;y<=cur+1;y++) o+=`<option value="${y}"${String(y)===S.tahun?' selected':''}>${y}</option>`;
+    document.getElementById(id).innerHTML=o;
+  });
+  document.getElementById('cfgBulan').onchange=e=>{S.bulan=e.target.value;localStorage.setItem('hh_bln',S.bulan);syncNav();};
+  document.getElementById('cfgTahun').onchange=e=>{S.tahun=e.target.value;localStorage.setItem('hh_thn',S.tahun);syncNav();};
+}
+
+function buildMonthNav(){
+  // Month dropdown
+  const md=document.getElementById('monthDd');
+  md.innerHTML=MONTHS.map((m,i)=>`<option value="${i+1}"${String(i+1)===S.bulan?' selected':''}>${m}</option>`).join('');
+  md.onchange=e=>{ S.bulan=e.target.value; localStorage.setItem('hh_bln',S.bulan); document.getElementById('cfgBulan').value=S.bulan; if(S.connected) loadData(); };
+  // Year dropdown
+  const ys=document.getElementById('yearSel');
+  const cur=new Date().getFullYear();
+  let o=''; for(let y=cur-2;y<=cur+1;y++) o+=`<option value="${y}"${String(y)===S.tahun?' selected':''}>${y}</option>`;
+  ys.innerHTML=o;
+  ys.onchange=e=>{ S.tahun=e.target.value; localStorage.setItem('hh_thn',S.tahun); document.getElementById('cfgTahun').value=S.tahun; if(S.connected) loadData(); };
+}
+function syncNav(){
+  const md=document.getElementById('monthDd'); if(md) md.value=S.bulan;
+  const ys=document.getElementById('yearSel'); if(ys) ys.value=S.tahun;
+}
+
+// ── CONFIG ────────────────────────────────────────────────
+function toggleCfg(){ document.getElementById('cfgPanel').classList.toggle('open'); }
+async function connectAPI(silent=false){
+  const url=document.getElementById('cfgUrl').value.trim();
+  if(!url){ showConn('err','URL tidak boleh kosong'); return; }
+  S.apiUrl=url; S.bulan=document.getElementById('cfgBulan').value; S.tahun=document.getElementById('cfgTahun').value;
+  localStorage.setItem('hh_api',url); localStorage.setItem('hh_bln',S.bulan); localStorage.setItem('hh_thn',S.tahun);
+  try{
+    if(!silent) showConn('','⏳ Menghubungkan...');
+    const r=await apiFetch('ping');
+    if(r.ok){
+      S.connected=true;
+      const ls=document.getElementById('liveStatus');
+      ls.className='badge-live'; ls.textContent='⬤ LIVE';
+      if(!silent){ showConn('ok','✅ Terhubung!'); setTimeout(()=>document.getElementById('cfgPanel').classList.remove('open'),1200); }
+      await loadData();
+    } else throw new Error(r.error||'Gagal');
+  } catch(e){ showConn('err','❌ '+e.message); S.connected=false; }
+}
+function showConn(t,m){ const el=document.getElementById('connMsg'); el.className='conn-msg'+(t?' '+t:''); el.textContent=m; el.style.display='block'; }
+
+// ── API ───────────────────────────────────────────────────
+async function apiFetch(action,params={}){
+  const u=new URL(S.apiUrl);
+  u.searchParams.set('action',action);
+  Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  return (await fetch(u.toString())).json();
+}
+async function apiPost(body){ return (await fetch(S.apiUrl,{method:'POST',body:JSON.stringify(body)})).json(); }
+
+async function loadData(){
+  const [rooms,summary,foto,rekap]=await Promise.allSettled([
+    apiFetch('getRooms'),
+    apiFetch('getSummary',{bulan:S.bulan,tahun:S.tahun}),
+    apiFetch('getFoto'),
+    apiFetch('getMonitoring',{bulan:S.bulan,tahun:S.tahun})
+  ]);
+  if(rooms.status==='fulfilled'&&rooms.value.ok){ S.rooms=rooms.value.rooms||[]; populateRoomSelects(); renderRoomList(); }
+  if(summary.status==='fulfilled'&&summary.value.ok){ S.summary=summary.value.summary; renderSummary(); }
+  if(foto.status==='fulfilled'&&foto.value.ok){ S.foto=foto.value.foto||[]; renderFoto(); updateFotoStat(); }
+  if(rekap.status==='fulfilled'&&rekap.value.ok){ S.rekap=rekap.value.data||[]; renderRekap(); }
+}
+
+// ── SUMMARY ───────────────────────────────────────────────
+function renderSummary(){
+  const s=S.summary; if(!s) return;
+  document.getElementById('stTotal').textContent=s.totalRuangan;
+  document.getElementById('stDiisi').textContent=s.totalDiisi;
+  document.getElementById('stPct').textContent=s.rataKepatuhan+'%';
+  updateFotoStat();
+  const areas=s.perArea||{};
+  const grid=document.getElementById('areaGrid');
+  if(!Object.keys(areas).length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="ei">📭</div><p>Belum ada data untuk<br><strong>${MONTHS[+S.bulan-1]} ${S.tahun}</strong></p></div>`;
+  } else {
+    grid.innerHTML=Object.keys(AREA_CLR).map(area=>{
+      const d=areas[area]; const pct=d?parseFloat(d.rata):0;
+      const c=AREA_CLR[area];
+      const pctColor=pct>=80?'var(--green-dark)':pct>=50?'var(--orange)':'var(--red)';
+      return `<div class="area-card">
+        <div class="area-card-top">
+          <div class="area-name">${area}</div>
+          <div class="area-pct" style="color:${pctColor}">${pct}%</div>
+        </div>
+        <div class="area-bar-track">
+          <div class="area-bar-fill" style="width:${pct}%;background:${c.g}"></div>
+        </div>
+        <div class="area-meta">${d?d.jumlah+' entri · '+MONTHS[+S.bulan-1]+' '+S.tahun:'Belum ada data'}</div>
+      </div>`;
+    }).join('');
+  }
+  const items=s.itemBreakdown||{}; const total=s.totalEntri||1;
+  ITEMS.forEach(it=>{
+    const el=document.getElementById('ibar-'+it.key); if(!el) return;
+    const pct=total>0?Math.round((items[it.key]||0)/total*100):0;
+    el.style.width=pct+'%';
+    document.getElementById('ipct-'+it.key).textContent=pct+'%';
+  });
+}
+function updateFotoStat(){
+  document.getElementById('stFoto').textContent=S.foto.filter(f=>f.Status!=='Selesai Diperbaiki').length;
+}
+function buildItemGrid(){
+  document.getElementById('itemGrid').innerHTML=ITEMS.map(it=>`
+    <div class="item-row">
+      <div class="item-icon">${it.icon}</div>
+      <div class="item-info">
+        <div class="item-name">${it.label}</div>
+        <div class="item-bar-wrap"><div class="item-bar" id="ibar-${it.key}" style="width:0%"></div></div>
+      </div>
+      <div class="item-pct" id="ipct-${it.key}">—%</div>
+    </div>`).join('');
+}
+
+// ── FOTO ──────────────────────────────────────────────────
+function renderFoto(filter){
+  const f=filter||S.fotoFilter;
+  const list=document.getElementById('fotoList');
+  let data=S.foto;
+  if(f&&f!=='semua') data=data.filter(x=>x.Status===f);
+  if(!data.length){
+    list.innerHTML=`<div class="empty-state"><div class="ei">📷</div><p>Belum ada laporan${f&&f!=='semua'?' dengan status ini':''}.</p></div>`;
+    return;
+  }
+  list.innerHTML=data.map(d=>{
+    const sc=d.Status==='Selesai Diperbaiki'?'selesai':d.Status==='Dalam Perbaikan'?'perbaikan':'dilaporkan';
+    const hasLink=d.Link_GDrive&&d.Link_GDrive.startsWith('http');
+    const s1=sc==='dilaporkan'?'s-active':'s-done';
+    const s2=sc==='perbaikan'?'s-active':sc==='selesai'?'s-done':'';
+    const s3=sc==='selesai'?'s-done':'';
+    const l1=sc!=='dilaporkan'?'done':'';
+    const l2=sc==='selesai'?'done':'';
+    const tagCls=sc==='dilaporkan'?'t-merah':sc==='perbaikan'?'t-orange':'t-hijau';
+    const canUpdate=d.Status!=='Selesai Diperbaiki';
+    const eid=d.ID.replace(/[^a-zA-Z0-9]/g,'_');
+    return `<div class="foto-card fc-${sc}">
+      <div class="foto-top">
+        <div class="foto-dot ${sc}"></div>
+        <div class="foto-body">
+          <div class="foto-room">${d.Nama_Ruangan}</div>
+          <div class="foto-item-txt">${d.Item_Bermasalah} · <span style="color:var(--primary);font-weight:600">${d.Area_Lantai}</span></div>
+          <div class="foto-tags">
+            <span class="ftag ${tagCls}">${d.Status}</span>
+            <span class="ftag">📅 ${fmtDate(d.Tanggal_Temuan)}</span>
+            <span class="ftag">👤 ${d.Pelapor||'—'}</span>
+            ${d.Tanggal_Selesai?`<span class="ftag t-hijau">✅ ${fmtDate(d.Tanggal_Selesai)}</span>`:''}
+          </div>
+          ${d.Deskripsi?`<div class="foto-desc">"${d.Deskripsi}"</div>`:''}
+        </div>
+        ${hasLink?`<a href="${d.Link_GDrive}" target="_blank" style="color:var(--primary);font-size:22px;text-decoration:none;flex-shrink:0" title="Lihat Foto">📎</a>`:''}
+      </div>
+      <div class="stepper">
+        <div class="step-item ${s1}"><div class="step-circle">1</div><span class="step-label">Dilaporkan</span></div>
+        <div class="step-line ${l1}"></div>
+        <div class="step-item ${s2}"><div class="step-circle">2</div><span class="step-label">Perbaikan</span></div>
+        <div class="step-line ${l2}"></div>
+        <div class="step-item ${s3}"><div class="step-circle">3</div><span class="step-label">Selesai</span></div>
+      </div>
+      <div class="action-bar">
+        ${canUpdate?`<button class="btn-act btn-perbaikan" onclick="openStatusModal('${d.ID}','${d.Nama_Ruangan}','${d.Item_Bermasalah}','Dalam Perbaikan')">🔧 Tandai Perbaikan</button>`:''}
+        ${canUpdate?`<button class="btn-act btn-selesai" onclick="openStatusModal('${d.ID}','${d.Nama_Ruangan}','${d.Item_Bermasalah}','Selesai Diperbaiki')">✅ Tandai Selesai</button>`:''}
+        ${!canUpdate?`<div class="selesai-badge">✅ Selesai diperbaiki ${d.Tanggal_Selesai?'· '+fmtDate(d.Tanggal_Selesai):''}</div>`:''}
+        ${hasLink?`<button class="btn-act btn-foto-act" onclick="window.open('${d.Link_GDrive}','_blank')">📎 Lihat Foto</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function filterFoto(status,btn){
+  S.fotoFilter=status;
+  document.querySelectorAll('.filter-chips .chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFoto(status);
+}
+
+// ── REKAP ─────────────────────────────────────────────────
+function renderRekap(){
+  const tb=document.getElementById('rekapTb');
+  if(!S.rekap.length){ tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Belum ada data untuk ${MONTHS[+S.bulan-1]} ${S.tahun}.</td></tr>`; return; }
+  tb.innerHTML=S.rekap.map(d=>{
+    const pct=Number(d.Skor_Persen||0);
+    const cls=pct>=100?'patuh':pct>=80?'perhatian':'tidak';
+    const lbl=pct>=100?'✅ Patuh':pct>=80?'⚠️ Perhatian':'❌ Tidak Patuh';
+    return `<tr>
+      <td class="td-room">${d.Nama_Ruangan}</td>
+      <td class="td-area">${d.Area_Lantai}</td>
+      <td class="td-date">${fmtDate(d.Tanggal)}</td>
+      <td style="font-size:11px">${d.Observer||'—'}</td>
+      <td><span class="skor-val" style="color:${pct>=100?'var(--green-dark)':pct>=80?'var(--orange)':'var(--red)'}">${pct}%</span></td>
+      <td><span class="badge-st ${cls}">${lbl}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ROOM LIST ─────────────────────────────────────────────
+function renderRoomList(){
+  const wrap=document.getElementById('roomListWrap');
+  if(!S.rooms.length){ wrap.innerHTML=`<div class="empty-state"><div class="ei">🔌</div><p>Tidak ada data ruangan.</p></div>`; return; }
+  const areas=[...new Set(S.rooms.map(r=>r.Area_Lantai))];
+  wrap.innerHTML=areas.map(area=>{
+    const rooms=S.rooms.filter(r=>r.Area_Lantai===area);
+    return `<div style="margin-bottom:16px">
+      <div class="room-area-hdr">${area}</div>
+      ${rooms.map(r=>`
+        <div class="room-item" data-room="${r.Nama_Ruangan}" onclick="openInputModal('${r.ID}','${r.Nama_Ruangan}','${r.Area_Lantai}')">
+          <div style="font-size:20px">🚿</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${r.Nama_Ruangan}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${r.Kode_HH}</div></div>
+          <div style="color:var(--primary);font-size:18px;font-weight:700">›</div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+function filterRooms(){
+  const q=document.getElementById('searchRoom').value.toLowerCase();
+  document.querySelectorAll('.room-item').forEach(el=>{ el.style.display=el.dataset.room.toLowerCase().includes(q)?'':'none'; });
+}
+function populateRoomSelects(){
+  const opts='<option value="">— Pilih Ruangan —</option>'+S.rooms.map(r=>`<option value="${r.ID}|${r.Nama_Ruangan}|${r.Area_Lantai}">${r.Nama_Ruangan} (${r.Area_Lantai})</option>`).join('');
+  document.getElementById('mRoom').innerHTML=opts;
+  document.getElementById('fRoom').innerHTML=opts;
+}
+
+// ── CHECKLIST ─────────────────────────────────────────────
+function buildChecklistUI(){
+  document.getElementById('ckGrid').innerHTML=ITEMS.map(it=>`
+    <div class="check-item" id="ci-${it.key}">
+      <div class="check-item-label">${it.icon} ${it.label}</div>
+      <div class="check-toggle">
+        <button class="toggle-btn" id="ck-${it.key}-y" onclick="setCheck('${it.key}','√')">√</button>
+        <button class="toggle-btn" id="ck-${it.key}-n" onclick="setCheck('${it.key}','X')">✗</button>
+      </div>
+    </div>`).join('');
+}
+const ckS={};
+function setCheck(key,val){
+  ckS[key]=val;
+  document.getElementById(`ck-${key}-y`).className='toggle-btn'+(val==='√'?' ay':'');
+  document.getElementById(`ck-${key}-n`).className='toggle-btn'+(val==='X'?' an':'');
+  const ci=document.getElementById('ci-'+key);
+  ci.classList.toggle('ck-yes',val==='√');
+  ci.classList.toggle('ck-no',val==='X');
+}
+function resetCk(){ ITEMS.forEach(it=>{ delete ckS[it.key]; document.getElementById(`ck-${it.key}-y`).className='toggle-btn'; document.getElementById(`ck-${it.key}-n`).className='toggle-btn'; const ci=document.getElementById('ci-'+it.key); ci.classList.remove('ck-yes','ck-no'); }); }
+
+// ── MODALS ────────────────────────────────────────────────
+function openInputModal(roomId,roomName,areaLantai){
+  if(roomId){ const sel=document.getElementById('mRoom'); for(const o of sel.options){ if(o.value.startsWith(roomId+'|')){ sel.value=o.value; break; } } }
+  const obs=document.getElementById('obsName').value; if(obs) document.getElementById('mObs').value=obs;
+  resetCk();
+  document.getElementById('mInput').classList.add('open');
+}
+function openFotoModal(){ document.getElementById('mFoto').classList.add('open'); }
+function openStatusModal(id,ruangan,item,def){
+  S.upId=id; S.upStatus=def||'Dilaporkan';
+  document.getElementById('mStTitle').textContent='🔧 Update Status · '+ruangan;
+  document.getElementById('mStDesc').textContent='📍 '+ruangan+' — '+item;
+  pickStatusByVal(S.upStatus);
+  document.getElementById('tglWrap').style.display=S.upStatus==='Selesai Diperbaiki'?'block':'none';
+  document.getElementById('mStatus').classList.add('open');
+}
+function pickStatus(val,el){
+  S.upStatus=val;
+  document.querySelectorAll('.status-radio').forEach(r=>r.className='status-radio');
+  if(el){ const cls=val==='Dilaporkan'?'sel-d':val==='Dalam Perbaikan'?'sel-p':'sel-s'; el.className='status-radio '+cls; }
+  document.getElementById('tglWrap').style.display=val==='Selesai Diperbaiki'?'block':'none';
+}
+function pickStatusByVal(val){
+  const opts=document.querySelectorAll('.status-radio');
+  const vals=['Dilaporkan','Dalam Perbaikan','Selesai Diperbaiki'];
+  opts.forEach((el,i)=>{ const cls=vals[i]==='Dilaporkan'?'sel-d':vals[i]==='Dalam Perbaikan'?'sel-p':'sel-s'; el.className='status-radio'+(vals[i]===val?' '+cls:''); });
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
+
+// ── SUBMIT ────────────────────────────────────────────────
+async function submitChecklist(){
+  if(!S.connected){ toast('Hubungkan ke Google Sheets dulu','error'); return; }
+  const rv=document.getElementById('mRoom').value; if(!rv){ toast('Pilih ruangan','error'); return; }
+  const [rid,rname,area]=rv.split('|');
+  const obs=document.getElementById('mObs').value||document.getElementById('obsName').value; if(!obs){ toast('Isi nama observer','error'); return; }
+  const tgl=document.getElementById('mTgl').value; if(!tgl){ toast('Pilih tanggal','error'); return; }
+  const btn=document.getElementById('btnSI'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
+  try{
+    const dt=new Date(tgl);
+    const r=await apiPost({action:'saveMonitoring',ruanganId:rid,namaRuangan:rname,areaLantai:area,tanggal:tgl,bulan:dt.getMonth()+1,tahun:dt.getFullYear(),observer:obs,checklist:ckS,keterangan:document.getElementById('mKet').value});
+    if(r.ok){ toast(`✅ Tersimpan! Skor: ${r.skor}%`,'success'); closeModal('mInput'); resetCk(); document.getElementById('mKet').value=''; loadData(); }
+    else throw new Error(r.error);
+  } catch(e){ toast('❌ '+e.message,'error'); }
+  finally{ btn.disabled=false; btn.textContent='💾 Simpan ke Google Sheets'; }
+}
+async function submitFoto(){
+  if(!S.connected){ toast('Hubungkan ke Google Sheets dulu','error'); return; }
+  const rv=document.getElementById('fRoom').value; if(!rv){ toast('Pilih ruangan','error'); return; }
+  const [,rname,area]=rv.split('|');
+  const item=document.getElementById('fItem').value; if(!item){ toast('Pilih item','error'); return; }
+  const pelapor=document.getElementById('fPelapor').value; if(!pelapor){ toast('Isi nama pelapor','error'); return; }
+  const btn=document.getElementById('btnSF'); btn.disabled=true; btn.textContent='⏳ Mengirim...';
+  try{
+    const r=await apiPost({action:'saveFoto',areaLantai:area,namaRuangan:rname,itemBermasalah:item,deskripsi:document.getElementById('fDesc').value,tanggalTemuan:new Date().toISOString().split('T')[0],pelapor,linkGDrive:document.getElementById('fLink').value,keterangan:document.getElementById('fKet').value});
+    if(r.ok){ toast('📸 Laporan terkirim!','success'); closeModal('mFoto'); ['fDesc','fLink','fKet'].forEach(id=>document.getElementById(id).value=''); switchTab('foto'); loadData(); }
+    else throw new Error(r.error);
+  } catch(e){ toast('❌ '+e.message,'error'); }
+  finally{ btn.disabled=false; btn.textContent='📤 Kirim Laporan'; }
+}
+async function submitStatus(){
+  if(!S.connected){ toast('Hubungkan ke Google Sheets dulu','error'); return; }
+  if(!S.upId){ toast('ID laporan tidak ditemukan','error'); return; }
+  const btn=document.getElementById('btnSS'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
+  try{
+    const tglSelesai=S.upStatus==='Selesai Diperbaiki'?document.getElementById('tglSelesai').value:'';
+    const r=await apiPost({action:'updateStatus',id:S.upId,status:S.upStatus,tanggalSelesai:tglSelesai,catatan:document.getElementById('catatanTek').value});
+    if(r.ok){ const lbl=S.upStatus==='Selesai Diperbaiki'?'✅ Selesai dicatat!':'🔧 Status diperbarui!'; toast(lbl,'success'); closeModal('mStatus'); document.getElementById('catatanTek').value=''; loadData(); }
+    else throw new Error(r.error);
+  } catch(e){ toast('❌ '+e.message,'error'); }
+  finally{ btn.disabled=false; btn.textContent='✅ Simpan Status'; }
+}
+
+// ── TABS ──────────────────────────────────────────────────
+const fab=document.getElementById('fab');
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.classList.toggle('active',['dashboard','input','foto','rekap'][i]===id); });
+  document.querySelectorAll('.tab-panel').forEach(p=>{ p.classList.toggle('active',p.id==='tab-'+id); });
+  fab.textContent=id==='foto'?'📸':'+';
+  fab.onclick=id==='foto'?openFotoModal:openInputModal;
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function fmtDate(v){ if(!v) return '—'; const d=new Date(v); return isNaN(d)?v:d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
+let _tt;
+function toast(msg,type=''){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>el.className='toast',3000); }
+</script>
+</body>
+</html>

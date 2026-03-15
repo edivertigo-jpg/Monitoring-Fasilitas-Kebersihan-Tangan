@@ -1,0 +1,16 @@
+{
+  "name": "Monitoring HH RSU Surya Husadha Nusa Dua",
+  "short_name": "HH Monitor",
+  "description": "Dashboard Monitoring Fasilitas Hand Hygiene Komite PPI",
+  "start_url": "./Dashboard_HH_RSU.html",
+  "display": "standalone",
+  "background_color": "#F0F6FC",
+  "theme_color": "#0077B6",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["medical", "productivity"],
+  "lang": "id"
+}
