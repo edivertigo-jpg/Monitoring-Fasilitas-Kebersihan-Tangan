@@ -541,6 +541,60 @@ tbody td{padding:11px 14px;color:var(--text)}
 .foto-selesai-box p{font-size:10px;color:#795548;line-height:1.5}
 .foto-selesai-box a{color:var(--primary)}
 .foto-thumb{width:100%;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);margin-top:8px;max-height:140px;object-fit:cover;display:block}
+
+/* INLINE DAMAGE SECTION */
+.damage-section{margin-top:14px;display:none}
+.damage-section.show{display:block}
+.damage-section-title{
+  font-size:12px;font-weight:700;color:var(--red);
+  text-transform:uppercase;letter-spacing:.5px;
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:10px;padding:8px 12px;
+  background:var(--red-light);border:1.5px solid #f5bcba;
+  border-radius:var(--radius-sm);
+}
+.damage-item-card{
+  background:var(--white);border:1.5px solid #f5bcba;
+  border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;
+  border-left:4px solid var(--red);
+}
+.damage-item-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.damage-item-name span{font-size:18px}
+.foto-capture-area{
+  background:#FFF8E1;border:1.5px dashed #FFD54F;
+  border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;
+}
+.foto-capture-area h4{font-size:11px;font-weight:700;color:#5D4037;margin-bottom:4px}
+.foto-capture-area p{font-size:10px;color:#795548;line-height:1.5;margin-bottom:8px}
+.btn-capture{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;padding:9px;border-radius:8px;
+  border:1.5px solid var(--border2);background:var(--primary-light);
+  color:var(--primary);font-family:var(--font);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .2s;margin-bottom:6px;
+}
+.btn-capture:hover{background:var(--primary);color:white}
+.capture-preview{
+  width:100%;border-radius:8px;display:none;margin-top:8px;
+  border:1.5px solid var(--border);max-height:200px;object-fit:cover;
+}
+.capture-preview.show{display:block}
+.damage-link-input{margin-top:6px}
+.damage-link-input input{
+  width:100%;background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--text);font-family:var(--font);font-size:12px;
+  padding:9px 12px;border-radius:var(--radius-sm);outline:none;
+  transition:border-color .2s;
+}
+.damage-link-input input:focus{border-color:var(--primary)}
+.damage-desc-input textarea{
+  width:100%;background:var(--surface2);border:1.5px solid var(--border);
+  color:var(--text);font-family:var(--font);font-size:12px;
+  padding:9px 12px;border-radius:var(--radius-sm);outline:none;
+  resize:none;margin-top:6px;transition:border-color .2s;
+}
+.damage-desc-input textarea:focus{border-color:var(--red)}
+.hidden-file-input{display:none}
 </style>
 </head>
 <body>
@@ -697,7 +751,17 @@ tbody td{padding:11px 14px;color:var(--text)}
     <div class="fg"><label>Tanggal</label><input type="date" id="mTgl"></div>
     <div class="fg"><label>Checklist Fasilitas (√ = Ada/Baik · ✗ = Tidak Ada/Rusak)</label><div class="checklist-grid" id="ckGrid"></div></div>
     <div class="fg"><label>Keterangan</label><textarea id="mKet" rows="2" placeholder="Catatan temuan atau tindakan..."></textarea></div>
+
+    <!-- INLINE DAMAGE REPORT -->
+    <div class="damage-section" id="damageSection">
+      <div class="damage-section-title">
+        ⚠️ Item Bermasalah — Laporan Kerusakan
+      </div>
+      <div id="damageCards"></div>
+    </div>
+
     <button class="btn-submit" id="btnSI" onclick="submitChecklist()">💾 Simpan ke Google Sheets</button>
+
   </div>
 </div>
 
@@ -1084,6 +1148,8 @@ function buildChecklistUI(){
     </div>`).join('');
 }
 const ckS={};
+const dmgData={}; // damage data per item key
+
 function setCheck(key,val){
   ckS[key]=val;
   document.getElementById(`ck-${key}-y`).className='toggle-btn'+(val==='√'?' ay':'');
@@ -1091,8 +1157,119 @@ function setCheck(key,val){
   const ci=document.getElementById('ci-'+key);
   ci.classList.toggle('ck-yes',val==='√');
   ci.classList.toggle('ck-no',val==='X');
+  updateDamageSection();
 }
-function resetCk(){ ITEMS.forEach(it=>{ delete ckS[it.key]; document.getElementById(`ck-${it.key}-y`).className='toggle-btn'; document.getElementById(`ck-${it.key}-n`).className='toggle-btn'; const ci=document.getElementById('ci-'+it.key); ci.classList.remove('ck-yes','ck-no'); }); }
+
+function updateDamageSection(){
+  const badItems=ITEMS.filter(it=>ckS[it.key]==='X');
+  const sec=document.getElementById('damageSection');
+  const cards=document.getElementById('damageCards');
+  if(!badItems.length){ sec.classList.remove('show'); return; }
+  sec.classList.add('show');
+
+  // Keep existing cards, only add new ones
+  badItems.forEach(it=>{
+    if(document.getElementById('dmg-card-'+it.key)) return; // already exists
+    if(!dmgData[it.key]) dmgData[it.key]={desc:'',link:'',photoBase64:''};
+    const card=document.createElement('div');
+    card.className='damage-item-card';
+    card.id='dmg-card-'+it.key;
+    card.innerHTML=`
+      <div class="damage-item-name"><span>${it.icon}</span>${it.label}</div>
+      <div class="foto-capture-area">
+        <h4>📷 Foto Kerusakan</h4>
+        <p>Ambil foto langsung dengan kamera atau pilih dari galeri HP</p>
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <button class="btn-capture" style="flex:1" onclick="triggerCameraOnly('${it.key}')">📷 Kamera</button>
+          <button class="btn-capture" style="flex:1" onclick="triggerGallery('${it.key}')">🖼️ Galeri</button>
+        </div>
+        <img id="dmg-preview-${it.key}" class="capture-preview" alt="Preview">
+        <div id="dmg-fname-${it.key}" style="display:none;font-size:10px;color:var(--green-dark);font-weight:600;margin-top:4px;padding:4px 8px;background:var(--green-light);border-radius:6px"></div>
+        <button id="dmg-remove-${it.key}" style="display:none;margin-top:6px;width:100%;padding:6px;border-radius:6px;border:1px solid #f5bcba;background:var(--red-light);color:var(--red);font-size:11px;font-weight:700;font-family:var(--font);cursor:pointer" onclick="removeFoto('${it.key}')">✕ Hapus Foto</button>
+      </div>
+      <div class="damage-desc-input">
+        <textarea id="dmg-desc-${it.key}" rows="2" placeholder="Deskripsi kerusakan (opsional)..."
+          oninput="dmgData['${it.key}'].desc=this.value"></textarea>
+      </div>`;
+    cards.appendChild(card);
+  });
+
+  // Remove cards for items no longer X
+  document.querySelectorAll('[id^="dmg-card-"]').forEach(card=>{
+    const key=card.id.replace('dmg-card-','');
+    if(ckS[key]!=='X'){ card.remove(); delete dmgData[key]; }
+  });
+}
+
+let activeCameraKey=null;
+
+function triggerCameraOnly(key){
+  activeCameraKey=key;
+  // Create fresh input for camera
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.capture='environment';
+  inp.style.display='none';
+  document.body.appendChild(inp);
+  inp.onchange=()=>{ handleFileSelected(inp, key); document.body.removeChild(inp); };
+  inp.click();
+}
+
+function triggerGallery(key){
+  activeCameraKey=key;
+  // Create fresh input for gallery (no capture attribute)
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.style.display='none';
+  document.body.appendChild(inp);
+  inp.onchange=()=>{ handleFileSelected(inp, key); document.body.removeChild(inp); };
+  inp.click();
+}
+
+function handleFileSelected(inp, key){
+  if(!inp.files||!inp.files[0]) return;
+  const file=inp.files[0];
+  // Check file size - max 5MB
+  if(file.size > 5*1024*1024){ toast('Foto terlalu besar, max 5MB','error'); return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result;
+    dmgData[key].photoBase64=b64;
+    dmgData[key].photoName=file.name;
+    dmgData[key].link=''; // clear link since using direct upload
+    // Show preview
+    const prev=document.getElementById('dmg-preview-'+key);
+    prev.src=b64; prev.classList.add('show');
+    // Show filename badge
+    const fname=document.getElementById('dmg-fname-'+key);
+    fname.textContent='✅ '+file.name+' ('+Math.round(file.size/1024)+'KB)';
+    fname.style.display='';
+    // Show remove button
+    document.getElementById('dmg-remove-'+key).style.display='';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeFoto(key){
+  dmgData[key].photoBase64='';
+  dmgData[key].photoName='';
+  const prev=document.getElementById('dmg-preview-'+key);
+  prev.src=''; prev.classList.remove('show');
+  document.getElementById('dmg-fname-'+key).style.display='none';
+  document.getElementById('dmg-remove-'+key).style.display='none';
+}
+
+function resetCk(){
+  ITEMS.forEach(it=>{
+    delete ckS[it.key];
+    document.getElementById(`ck-${it.key}-y`).className='toggle-btn';
+    document.getElementById(`ck-${it.key}-n`).className='toggle-btn';
+    const ci=document.getElementById('ci-'+it.key); ci.classList.remove('ck-yes','ck-no');
+  });
+  // Reset damage section
+  Object.keys(dmgData).forEach(k=>delete dmgData[k]);
+  document.getElementById('damageCards').innerHTML='';
+  document.getElementById('damageSection').classList.remove('show');
+}
 
 // ── MODALS ────────────────────────────────────────────────
 function openInputModal(roomId,roomName,areaLantai){
@@ -1146,7 +1323,41 @@ async function submitChecklist(){
     // Parse tanggal langsung dari string YYYY-MM-DD untuk hindari timezone bug
     const [tglTahun,tglBulan,tglHari] = tgl.split('-').map(Number);
     const r=await apiPost({action:'saveMonitoring',ruanganId:rid,namaRuangan:rname,areaLantai:area,tanggal:tgl,bulan:tglBulan,tahun:tglTahun,observer:obs,checklist:ckS,keterangan:document.getElementById('mKet').value});
-    if(r.ok){ toast(`✅ Tersimpan! Skor: ${r.skor}%`,'success'); closeModal('mInput'); resetCk(); document.getElementById('mKet').value=''; loadData(); }
+    if(r.ok){
+      // Auto-save damage reports for items marked X
+      const dmgKeys=Object.keys(dmgData);
+      if(dmgKeys.length>0){
+        const roomVal=document.getElementById('mRoom').value;
+        const [,rn,ar]=roomVal.split('|');
+        const pelapor=document.getElementById('mObs').value||document.getElementById('obsName').value;
+        const savedDmg=[];
+        for(const key of dmgKeys){
+          const d=dmgData[key];
+          const itemLabel=ITEMS.find(i=>i.key===key)?.label||key;
+          // If photo captured directly, note it; if link provided use that
+          const hasPhoto=d.photoBase64&&d.photoBase64.length>0;
+          const linkToSave=d.link||(hasPhoto?`[Foto: ${d.photoName||'foto_kerusakan.jpg'} - tersimpan di perangkat]`:'');
+          if(hasPhoto||d.link||d.desc){
+            const dr=await apiPost({
+              action:'saveFoto',
+              areaLantai:ar, namaRuangan:rn,
+              itemBermasalah:itemLabel,
+              deskripsi:d.desc||'',
+              tanggalTemuan:tgl,
+              pelapor:pelapor||'—',
+              linkGDrive:d.link||'',
+              keterangan:d.desc||''
+            });
+            if(dr.ok) savedDmg.push(itemLabel);
+          }
+        }
+        const dmgMsg=savedDmg.length>0?` + ${savedDmg.length} laporan kerusakan`:'';
+        toast(`✅ Tersimpan! Skor: ${r.skor}%${dmgMsg}`,'success');
+      } else {
+        toast(`✅ Tersimpan! Skor: ${r.skor}%`,'success');
+      }
+      closeModal('mInput'); resetCk(); document.getElementById('mKet').value=''; loadData();
+    }
     else throw new Error(r.error);
   } catch(e){ toast('❌ '+e.message,'error'); }
   finally{ btn.disabled=false; btn.textContent='💾 Simpan ke Google Sheets'; }
