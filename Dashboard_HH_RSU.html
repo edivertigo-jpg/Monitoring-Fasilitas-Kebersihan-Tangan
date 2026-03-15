@@ -649,7 +649,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="gdrive-notice">
     <span>📁</span>
     <div>Folder bukti foto:
-      <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">
+      <a href="https://drive.google.com/drive/folders/1uk4E6bEkKYzbUNBcei8wuJ0bCHBSo5tL" target="_blank">
         Buka Folder Google Drive RS
       </a> — Upload foto → klik kanan → Bagikan → Siapa saja punya link → Salin link
     </div>
@@ -730,6 +730,7 @@ tbody td{padding:11px 14px;color:var(--text)}
 
 <!-- TAB: REKAP -->
 <div class="tab-panel" id="tab-rekap">
+  <div id="rekapDebug" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto"></div>
   <div class="table-wrap"><div class="table-scroll">
     <table>
       <thead><tr><th>Ruangan</th><th>Area</th><th>Tanggal</th><th>Observer</th><th>Skor</th><th>Status</th></tr></thead>
@@ -789,7 +790,7 @@ tbody td{padding:11px 14px;color:var(--text)}
         <div>
           <h4>Cara upload foto:</h4>
           <p>1. Foto kerusakan dengan HP<br>
-          2. Buka <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">Folder Drive RS ↗</a> → Upload<br>
+          2. Buka <a href="https://drive.google.com/drive/folders/1uk4E6bEkKYzbUNBcei8wuJ0bCHBSo5tL" target="_blank">Folder Drive RS ↗</a> → Upload<br>
           3. Klik kanan file → Bagikan → Siapa saja punya link → Salin<br>
           4. Paste link di bawah</p>
         </div>
@@ -825,7 +826,7 @@ tbody td{padding:11px 14px;color:var(--text)}
       <label>Foto Bukti Selesai (Google Drive)</label>
       <div class="foto-selesai-box">
         <h4>Upload foto bukti perbaikan:</h4>
-        <p>Foto hasil perbaikan → Upload ke <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">Folder Drive RS ↗</a> → Bagikan → Salin link → Paste di bawah</p>
+        <p>Foto hasil perbaikan → Upload ke <a href="https://drive.google.com/drive/folders/1uk4E6bEkKYzbUNBcei8wuJ0bCHBSo5tL" target="_blank">Folder Drive RS ↗</a> → Bagikan → Salin link → Paste di bawah</p>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <button class="btn-capture" style="flex:1;font-size:12px;padding:8px" onclick="triggerFotoSelesai('camera')">📷 Kamera</button>
@@ -875,7 +876,7 @@ const AREA_CLR={
 };
 
 // PWA
-let deferredPrompt=null;
+var deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault(); deferredPrompt=e;
   if(!localStorage.getItem('pwa_dismissed')) document.getElementById('pwaBanner').classList.add('show');
@@ -885,6 +886,7 @@ function dismissPWA(){ document.getElementById('pwaBanner').classList.remove('sh
 
 // ── INIT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
+  fab = document.getElementById('fab');
   S.apiUrl=localStorage.getItem('hh_api')||S.apiUrl;
   S.bulan =localStorage.getItem('hh_bln')||S.bulan;
   S.tahun =localStorage.getItem('hh_thn')||S.tahun;
@@ -967,10 +969,27 @@ async function loadData(){
     apiFetch('getFoto'),
     apiFetch('getMonitoring',{bulan:S.bulan,tahun:S.tahun})
   ]);
-  if(rooms.status==='fulfilled'&&rooms.value.ok){ S.rooms=rooms.value.rooms||[]; populateRoomSelects(); renderRoomList(); }
-  if(summary.status==='fulfilled'&&summary.value.ok){ S.summary=summary.value.summary; renderSummary(); }
-  if(foto.status==='fulfilled'&&foto.value.ok){ S.foto=foto.value.foto||[]; renderFoto(); updateFotoStat(); }
-  if(rekap.status==='fulfilled'&&rekap.value.ok){ S.rekap=rekap.value.data||[]; renderRekap(); }
+  if(rooms.status==='fulfilled'&&rooms.value.ok){
+    S.rooms=rooms.value.rooms||[]; populateRoomSelects(); renderRoomList();
+  }
+  if(summary.status==='fulfilled'&&summary.value.ok){
+    S.summary=summary.value.summary; renderSummary();
+  } else if(summary.status==='fulfilled'&&summary.value.error){
+    console.warn('getSummary error:',summary.value.error);
+  }
+  if(foto.status==='fulfilled'&&foto.value.ok){
+    S.foto=foto.value.foto||[]; S.fotoFiltered=[...S.foto]; renderFoto(); updateFotoStat();
+  }
+  if(rekap.status==='fulfilled'&&rekap.value.ok){
+    S.rekap=rekap.value.data||[];
+    console.log('Rekap loaded:',S.rekap.length,'rows');
+    if(S.rekap.length>0) console.log('Sample row keys:',Object.keys(S.rekap[0]), 'values:',Object.values(S.rekap[0]).slice(0,5));
+    renderRekap();
+  } else if(rekap.status==='fulfilled'){
+    console.warn('getMonitoring response:',JSON.stringify(rekap.value));
+  } else {
+    console.warn('getMonitoring failed:',rekap.reason);
+  }
 }
 
 // ── SUMMARY ───────────────────────────────────────────────
@@ -1030,11 +1049,15 @@ function renderFoto(filter){
   const list=document.getElementById('fotoList');
   let data=S.foto;
   if(f&&f!=='semua') data=data.filter(x=>x.Status===f);
-  S.fotoFiltered=data; // store for index-based access
+  S.fotoFiltered=[...data]; // store for index-based access
   if(!data.length){
     list.innerHTML=`<div class="empty-state"><div class="ei">📷</div><p>Belum ada laporan${f&&f!=='semua'?' dengan status ini':''}.</p></div>`;
     return;
   }
+  // Store foto in global map for reliable access
+  window._fotoMap = window._fotoMap || {};
+  data.forEach((d,i) => { window._fotoMap['fi_'+i] = d; });
+
   list.innerHTML=data.map((d,idx)=>{
     const sc=d.Status==='Selesai Diperbaiki'?'selesai':d.Status==='Dalam Perbaikan'?'perbaikan':'dilaporkan';
     const hasFotoSelesai=d.Link_Foto_Selesai&&String(d.Link_Foto_Selesai).startsWith('http');
@@ -1045,9 +1068,7 @@ function renderFoto(filter){
     const l2=sc==='selesai'?'done':'';
     const tagCls=sc==='dilaporkan'?'t-merah':sc==='perbaikan'?'t-orange':'t-hijau';
     const canUpdate=d.Status!=='Selesai Diperbaiki';
-    // Use index-based reference to avoid special char issues in onclick
-    const fi=S.fotoFiltered.indexOf(d);
-    const realIdx=fi>=0?fi:idx;
+    const realIdx=idx;
     return `<div class="foto-card fc-${sc}">
       <div class="foto-top">
         <div class="foto-dot ${sc}"></div>
@@ -1082,6 +1103,7 @@ function renderFoto(filter){
 }
 function filterFoto(status,btn){
   S.fotoFilter=status;
+  window._fotoMap = {}; // reset map
   document.querySelectorAll('.filter-chips .chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderFoto(status);
@@ -1090,16 +1112,36 @@ function filterFoto(status,btn){
 // ── REKAP ─────────────────────────────────────────────────
 function renderRekap(){
   const tb=document.getElementById('rekapTb');
-  if(!S.rekap.length){ tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Belum ada data untuk ${MONTHS[+S.bulan-1]} ${S.tahun}.</td></tr>`; return; }
+  const dbg = document.getElementById('rekapDebug');
+  if(!S.rekap.length){
+    // Show debug info
+    dbg.style.display='block';
+    dbg.textContent = '⚠️ Data rekap kosong untuk Bulan='+S.bulan+' Tahun='+S.tahun+'\n'+
+      'Total data di S.rekap: '+S.rekap.length+'\n'+
+      'Coba lihat Console browser (F12) untuk detail error.';
+    tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Belum ada data untuk ${MONTHS[+S.bulan-1]} ${S.tahun}.</td></tr>`;
+    return;
+  }
+  dbg.style.display='none';
+  // Debug info (hidden - check console for details)
+  if(S.rekap.length>0){
+    document.getElementById('rekapDebug').style.display='none';
+  }
   tb.innerHTML=S.rekap.map(d=>{
-    const pct=Number(d.Skor_Persen||0);
-    const cls=pct>=100?'patuh':pct>=80?'perhatian':'tidak';
-    const lbl=pct>=100?'✅ Patuh':pct>=80?'⚠️ Perhatian':'❌ Tidak Patuh';
+    // Support berbagai nama field (robust)
+    // Field names sesuai header sheet: Nama_Ruangan, Area_Lantai, Tanggal, Observer, Skor_Persen
+    const namaRuangan = d.Nama_Ruangan||d['Nama_Ruangan']||'—';
+    const areaLantai  = d.Area_Lantai||d['Area_Lantai']||'—';
+    const tanggal     = d.Tanggal||'—';
+    const observer    = d.Observer||'—';
+    const pct         = Number(d.Skor_Persen||0);
+    const cls         = pct>=100?'patuh':pct>=80?'perhatian':'tidak';
+    const lbl         = pct>=100?'✅ Patuh':pct>=80?'⚠️ Perhatian':'❌ Tidak Patuh';
     return `<tr>
-      <td class="td-room">${d.Nama_Ruangan}</td>
-      <td class="td-area">${d.Area_Lantai}</td>
-      <td class="td-date">${fmtDate(d.Tanggal)}</td>
-      <td style="font-size:11px">${d.Observer||'—'}</td>
+      <td class="td-room">${namaRuangan}</td>
+      <td class="td-area">${areaLantai}</td>
+      <td class="td-date">${fmtDate(tanggal)}</td>
+      <td style="font-size:11px">${observer}</td>
       <td><span class="skor-val" style="color:${pct>=100?'var(--green-dark)':pct>=80?'var(--orange)':'var(--red)'}">${pct}%</span></td>
       <td><span class="badge-st ${cls}">${lbl}</span></td>
     </tr>`;
@@ -1210,7 +1252,7 @@ function updateDamageSection(){
   });
 }
 
-let activeCameraKey=null;
+var activeCameraKey=null;
 
 function triggerCameraOnly(key){
   activeCameraKey=key;
@@ -1467,7 +1509,7 @@ async function submitStatus(){
 }
 
 // ── TABS ──────────────────────────────────────────────────
-const fab=document.getElementById('fab');
+var fab;
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.classList.toggle('active',['dashboard','input','foto','rekap'][i]===id); });
   document.querySelectorAll('.tab-panel').forEach(p=>{ p.classList.toggle('active',p.id==='tab-'+id); });
@@ -1477,19 +1519,32 @@ function switchTab(id){
 
 
 // ── FOTO VIEWER ───────────────────────────────────────────────
-let viewerFoto = null;
+var viewerFoto = null;
 
 function openViewerByIdx(idx){
-  const d = S.fotoFiltered[idx];
-  if(!d){ toast('Data tidak ditemukan','error'); return; }
+  // Coba semua sumber data
+  let d = (window._fotoMap && window._fotoMap['fi_'+idx])
+       || S.fotoFiltered[idx]
+       || S.foto[idx];
+  if(!d){
+    toast('Memuat ulang...','');
+    loadData().then(()=>{
+      const d2 = (window._fotoMap&&window._fotoMap['fi_'+idx])||S.fotoFiltered[idx]||S.foto[idx];
+      if(d2){ viewerFoto=d2; openViewerWithData(d2); }
+      else toast('Data tidak ditemukan','error');
+    });
+    return;
+  }
   viewerFoto = d;
   openViewerWithData(d);
 }
 
 function openStatusByIdx(idx, defaultStatus){
-  const d = S.fotoFiltered[idx];
+  const d = (window._fotoMap&&window._fotoMap['fi_'+idx])
+         || S.fotoFiltered[idx]
+         || S.foto[idx];
   if(!d){ toast('Data tidak ditemukan','error'); return; }
-  openStatusModal(d.ID, d.Nama_Ruangan, d.Item_Bermasalah, defaultStatus);
+  openStatusModal(d.ID, d.Nama_Ruangan||'—', d.Item_Bermasalah||'—', defaultStatus);
 }
 
 function getDriveDirectLink(url) {
