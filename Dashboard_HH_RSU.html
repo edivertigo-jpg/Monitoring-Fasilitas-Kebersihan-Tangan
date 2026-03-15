@@ -1306,7 +1306,7 @@ async function confirmDeleteFoto() {
 
 // ── HELPERS ───────────────────────────────────────────────
 function fmtDate(v){ if(!v) return '—'; const d=new Date(v); return isNaN(d)?v:d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
-let _tt;
+var _tt;
 function toast(msg,type=''){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>el.className='toast',3000); }
 </script>
 
