@@ -79,12 +79,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   padding:4px 10px;border-radius:20px;
 }
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
-.btn-cfg{
-  background:var(--primary-light);border:1.5px solid var(--border2);
-  color:var(--primary);font-size:12px;font-weight:600;font-family:var(--font);
-  padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .2s;
-}
-.btn-cfg:hover{background:var(--primary);color:white}
+.btn-cfg{display:none}
 
 /* MAIN WRAP */
 .wrap{max-width:1200px;margin:0 auto;padding:20px 16px 90px}
@@ -503,6 +498,49 @@ tbody td{padding:11px 14px;color:var(--text)}
   .badge-live,.badge-offline{font-size:10px;padding:3px 8px}
   .btn-cfg{font-size:11px;padding:5px 10px}
 }
+
+/* FOTO VIEWER MODAL */
+.foto-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
+.foto-viewer-overlay.open{display:flex}
+.foto-viewer-box{background:white;border-radius:16px;overflow:hidden;max-width:600px;width:100%;max-height:90vh;display:flex;flex-direction:column}
+.foto-viewer-header{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid var(--border)}
+.foto-viewer-title{font-size:14px;font-weight:700;color:var(--text)}
+.foto-viewer-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.foto-preview-wrap{border-radius:10px;overflow:hidden;border:1.5px solid var(--border);background:var(--surface2);min-height:180px;display:flex;align-items:center;justify-content:center}
+.foto-preview-wrap img{width:100%;height:auto;display:block;max-height:300px;object-fit:contain}
+.foto-preview-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+.foto-preview-empty .pei{font-size:40px;margin-bottom:8px}
+.foto-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.foto-info-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.foto-info-item label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px}
+.foto-info-item span{font-size:12px;font-weight:600;color:var(--text)}
+.foto-viewer-actions{display:flex;gap:8px;padding:14px 16px;border-top:1.5px solid var(--border);flex-wrap:wrap}
+.btn-vw{flex:1;min-width:80px;padding:9px 12px;border-radius:8px;border:1.5px solid;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:all .2s}
+.btn-vw-open{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.btn-vw-open:hover{background:var(--primary);color:white}
+.btn-vw-edit{border-color:var(--orange);color:var(--orange);background:var(--orange-light)}
+.btn-vw-edit:hover{background:var(--orange);color:white}
+.btn-vw-delete{border-color:var(--red);color:var(--red);background:var(--red-light)}
+.btn-vw-delete:hover{background:var(--red);color:white}
+.btn-vw-close{border-color:var(--border);color:var(--muted);background:var(--surface2)}
+.btn-vw-close:hover{background:var(--border)}
+
+/* CONFIRM DELETE */
+.confirm-box{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-box.open{display:flex}
+.confirm-inner{background:white;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.confirm-inner h3{font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px}
+.confirm-inner p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.confirm-btns{display:flex;gap:10px}
+.btn-cancel-del{flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font);font-weight:700;font-size:13px;cursor:pointer}
+.btn-confirm-del{flex:1;padding:10px;border-radius:8px;border:none;background:var(--red);color:white;font-family:var(--font);font-weight:700;font-size:13px;cursor:pointer}
+
+/* FOTO SELESAI in status modal */
+.foto-selesai-box{background:#FFF8E1;border:1.5px dashed #FFD54F;border-radius:var(--radius-sm);padding:12px;margin-bottom:10px}
+.foto-selesai-box h4{font-size:11px;font-weight:700;color:#5D4037;margin-bottom:3px}
+.foto-selesai-box p{font-size:10px;color:#795548;line-height:1.5}
+.foto-selesai-box a{color:var(--primary)}
+.foto-thumb{width:100%;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);margin-top:8px;max-height:140px;object-fit:cover;display:block}
 </style>
 </head>
 <body>
@@ -519,8 +557,7 @@ tbody td{padding:11px 14px;color:var(--text)}
       </div>
     </div>
     <div class="topbar-right">
-      <div id="liveStatus" class="badge-offline">⬤ OFFLINE</div>
-      <button class="btn-cfg" onclick="toggleCfg()">⚙ Koneksi</button>
+      <div id="liveStatus" class="badge-offline" onclick="toggleCfg()" title="Klik untuk pengaturan koneksi" style="cursor:pointer">⬤ OFFLINE</div>
     </div>
   </div>
 </div>
@@ -542,7 +579,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="cfg-grid">
     <div class="cfg-field" style="grid-column:1/-1">
       <label>URL Google Apps Script</label>
-      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbw7KagE2D58j6b_U3IXHgFcr66oQtbQ1YbsomESygE3dYqDz3b0TEawYubbMQ5qYrLM2Q/exec">
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbwCkPOY-MKlWaKei9cqPS_2UNMZpFlSGaL3uSYd7il9fCwmTCLFYK7gi6rKfFNzoMTQQA/exec">
     </div>
     <div class="cfg-field">
       <label>Bulan</label>
@@ -702,6 +739,14 @@ tbody td{padding:11px 14px;color:var(--text)}
       <label>Tanggal Selesai</label>
       <input type="date" id="tglSelesai">
     </div>
+    <div class="fg" id="fotoSelesaiWrap" style="display:none">
+      <label>Foto Bukti Selesai (Google Drive)</label>
+      <div class="foto-selesai-box">
+        <h4>Upload foto bukti perbaikan:</h4>
+        <p>Foto hasil perbaikan → Upload ke <a href="https://drive.google.com/drive/folders/16srZd5gUepABPV4vhUfYbps-9Ak2m0B9" target="_blank">Folder Drive RS ↗</a> → Bagikan → Salin link → Paste di bawah</p>
+      </div>
+      <input type="url" id="linkFotoSelesai" placeholder="https://drive.google.com/file/d/...">
+    </div>
     <div class="fg">
       <label>Catatan Teknisi (opsional)</label>
       <textarea id="catatanTek" rows="2" placeholder="Apa yang sudah dikerjakan..."></textarea>
@@ -715,7 +760,7 @@ tbody td{padding:11px 14px;color:var(--text)}
 <script>
 // ── STATE ─────────────────────────────────────────────────
 const S={
-  apiUrl:'https://script.google.com/macros/s/AKfycbw7KagE2D58j6b_U3IXHgFcr66oQtbQ1YbsomESygE3dYqDz3b0TEawYubbMQ5qYrLM2Q/exec',
+  apiUrl:'https://script.google.com/macros/s/AKfycbwCkPOY-MKlWaKei9cqPS_2UNMZpFlSGaL3uSYd7il9fCwmTCLFYK7gi6rKfFNzoMTQQA/exec',
   bulan:String(new Date().getMonth()+1),
   tahun:String(new Date().getFullYear()),
   rooms:[],summary:null,foto:[],rekap:[],
@@ -902,7 +947,8 @@ function renderFoto(filter){
   }
   list.innerHTML=data.map(d=>{
     const sc=d.Status==='Selesai Diperbaiki'?'selesai':d.Status==='Dalam Perbaikan'?'perbaikan':'dilaporkan';
-    const hasLink=d.Link_GDrive&&d.Link_GDrive.startsWith('http');
+    const hasLink=d.Link_GDrive&&String(d.Link_GDrive).startsWith('http');
+    const hasFotoSelesai=d.Link_Foto_Selesai&&String(d.Link_Foto_Selesai).startsWith('http');
     const s1=sc==='dilaporkan'?'s-active':'s-done';
     const s2=sc==='perbaikan'?'s-active':sc==='selesai'?'s-done':'';
     const s3=sc==='selesai'?'s-done':'';
@@ -910,22 +956,22 @@ function renderFoto(filter){
     const l2=sc==='selesai'?'done':'';
     const tagCls=sc==='dilaporkan'?'t-merah':sc==='perbaikan'?'t-orange':'t-hijau';
     const canUpdate=d.Status!=='Selesai Diperbaiki';
-    const eid=d.ID.replace(/[^a-zA-Z0-9]/g,'_');
+    const safeId=encodeURIComponent(d.ID);
     return `<div class="foto-card fc-${sc}">
       <div class="foto-top">
         <div class="foto-dot ${sc}"></div>
         <div class="foto-body">
-          <div class="foto-room">${d.Nama_Ruangan}</div>
-          <div class="foto-item-txt">${d.Item_Bermasalah} · <span style="color:var(--primary);font-weight:600">${d.Area_Lantai}</span></div>
+          <div class="foto-room">${d.Nama_Ruangan||'—'}</div>
+          <div class="foto-item-txt">${d.Item_Bermasalah||'—'} · <span style="color:var(--primary);font-weight:600">${d.Area_Lantai||'—'}</span></div>
           <div class="foto-tags">
             <span class="ftag ${tagCls}">${d.Status}</span>
             <span class="ftag">📅 ${fmtDate(d.Tanggal_Temuan)}</span>
             <span class="ftag">👤 ${d.Pelapor||'—'}</span>
             ${d.Tanggal_Selesai?`<span class="ftag t-hijau">✅ ${fmtDate(d.Tanggal_Selesai)}</span>`:''}
+            ${hasFotoSelesai?`<span class="ftag t-hijau">📷 Ada Foto Bukti</span>`:''}
           </div>
           ${d.Deskripsi?`<div class="foto-desc">"${d.Deskripsi}"</div>`:''}
         </div>
-        ${hasLink?`<a href="${d.Link_GDrive}" target="_blank" style="color:var(--primary);font-size:22px;text-decoration:none;flex-shrink:0" title="Lihat Foto">📎</a>`:''}
       </div>
       <div class="stepper">
         <div class="step-item ${s1}"><div class="step-circle">1</div><span class="step-label">Dilaporkan</span></div>
@@ -935,10 +981,10 @@ function renderFoto(filter){
         <div class="step-item ${s3}"><div class="step-circle">3</div><span class="step-label">Selesai</span></div>
       </div>
       <div class="action-bar">
-        ${canUpdate?`<button class="btn-act btn-perbaikan" onclick="openStatusModal('${d.ID}','${d.Nama_Ruangan}','${d.Item_Bermasalah}','Dalam Perbaikan')">🔧 Tandai Perbaikan</button>`:''}
-        ${canUpdate?`<button class="btn-act btn-selesai" onclick="openStatusModal('${d.ID}','${d.Nama_Ruangan}','${d.Item_Bermasalah}','Selesai Diperbaiki')">✅ Tandai Selesai</button>`:''}
-        ${!canUpdate?`<div class="selesai-badge">✅ Selesai diperbaiki ${d.Tanggal_Selesai?'· '+fmtDate(d.Tanggal_Selesai):''}</div>`:''}
-        ${hasLink?`<button class="btn-act btn-foto-act" onclick="window.open('${d.Link_GDrive}','_blank')">📎 Lihat Foto</button>`:''}
+        <button class="btn-act btn-foto-act" onclick="openViewer('${safeId}')">🔍 Lihat Detail</button>
+        ${canUpdate?`<button class="btn-act btn-perbaikan" onclick="openStatusModal('${safeId}','${(d.Nama_Ruangan||'').replace(/'/g,"\'")}','${(d.Item_Bermasalah||'').replace(/'/g,"\'")}','Dalam Perbaikan')">🔧 Perbaikan</button>`:''}
+        ${canUpdate?`<button class="btn-act btn-selesai" onclick="openStatusModal('${safeId}','${(d.Nama_Ruangan||'').replace(/'/g,"\'")}','${(d.Item_Bermasalah||'').replace(/'/g,"\'")}','Selesai Diperbaiki')">✅ Selesai</button>`:''}
+        ${!canUpdate?`<div class="selesai-badge">✅ Selesai ${d.Tanggal_Selesai?'· '+fmtDate(d.Tanggal_Selesai):''}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -995,6 +1041,7 @@ function populateRoomSelects(){
   const opts='<option value="">— Pilih Ruangan —</option>'+S.rooms.map(r=>`<option value="${r.ID}|${r.Nama_Ruangan}|${r.Area_Lantai}">${r.Nama_Ruangan} (${r.Area_Lantai})</option>`).join('');
   document.getElementById('mRoom').innerHTML=opts;
   document.getElementById('fRoom').innerHTML=opts;
+  document.getElementById('efRoom').innerHTML=opts;
 }
 
 // ── CHECKLIST ─────────────────────────────────────────────
@@ -1039,15 +1086,21 @@ function pickStatus(val,el){
   S.upStatus=val;
   document.querySelectorAll('.status-radio').forEach(r=>r.className='status-radio');
   if(el){ const cls=val==='Dilaporkan'?'sel-d':val==='Dalam Perbaikan'?'sel-p':'sel-s'; el.className='status-radio '+cls; }
-  document.getElementById('tglWrap').style.display=val==='Selesai Diperbaiki'?'block':'none';
+  const isSelesai=val==='Selesai Diperbaiki';
+  document.getElementById('tglWrap').style.display=isSelesai?'block':'none';
+  document.getElementById('fotoSelesaiWrap').style.display=isSelesai?'block':'none';
 }
 function pickStatusByVal(val){
   const opts=document.querySelectorAll('.status-radio');
   const vals=['Dilaporkan','Dalam Perbaikan','Selesai Diperbaiki'];
   opts.forEach((el,i)=>{ const cls=vals[i]==='Dilaporkan'?'sel-d':vals[i]==='Dalam Perbaikan'?'sel-p':'sel-s'; el.className='status-radio'+(vals[i]===val?' '+cls:''); });
+  const isSelesai=val==='Selesai Diperbaiki';
+  document.getElementById('tglWrap').style.display=isSelesai?'block':'none';
+  document.getElementById('fotoSelesaiWrap').style.display=isSelesai?'block':'none';
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
+document.getElementById('mViewer').addEventListener('click',e=>{ if(e.target===document.getElementById('mViewer')) closeViewer(); });
 
 // ── SUBMIT ────────────────────────────────────────────────
 async function submitChecklist(){
@@ -1085,8 +1138,9 @@ async function submitStatus(){
   const btn=document.getElementById('btnSS'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try{
     const tglSelesai=S.upStatus==='Selesai Diperbaiki'?document.getElementById('tglSelesai').value:'';
-    const r=await apiPost({action:'updateStatus',id:S.upId,status:S.upStatus,tanggalSelesai:tglSelesai,catatan:document.getElementById('catatanTek').value});
-    if(r.ok){ const lbl=S.upStatus==='Selesai Diperbaiki'?'✅ Selesai dicatat!':'🔧 Status diperbarui!'; toast(lbl,'success'); closeModal('mStatus'); document.getElementById('catatanTek').value=''; loadData(); }
+    const linkFotoSelesai=S.upStatus==='Selesai Diperbaiki'?document.getElementById('linkFotoSelesai').value:'';
+    const r=await apiPost({action:'updateStatus',id:S.upId,status:S.upStatus,tanggalSelesai:tglSelesai,linkFotoSelesai,catatan:document.getElementById('catatanTek').value});
+    if(r.ok){ const lbl=S.upStatus==='Selesai Diperbaiki'?'✅ Selesai dicatat!':'🔧 Status diperbarui!'; toast(lbl,'success'); closeModal('mStatus'); document.getElementById('catatanTek').value=''; document.getElementById('linkFotoSelesai').value=''; loadData(); }
     else throw new Error(r.error);
   } catch(e){ toast('❌ '+e.message,'error'); }
   finally{ btn.disabled=false; btn.textContent='✅ Simpan Status'; }
@@ -1101,10 +1155,235 @@ function switchTab(id){
   fab.onclick=id==='foto'?openFotoModal:openInputModal;
 }
 
+
+// ── FOTO VIEWER ───────────────────────────────────────────────
+let viewerFoto = null;
+
+function getDriveDirectLink(url) {
+  if (!url) return null;
+  // Convert Google Drive share link to direct embed/thumbnail
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`;
+  return url;
+}
+
+function openViewer(safeId) {
+  const id = decodeURIComponent(safeId);
+  const d = S.foto.find(f => f.ID === id);
+  if (!d) { toast('Data tidak ditemukan','error'); return; }
+  viewerFoto = d;
+
+  document.getElementById('vwTitle').textContent = d.Nama_Ruangan || '—';
+
+  // Foto awal
+  const fotoAwal = document.getElementById('vwFotoAwal');
+  const hasLink = d.Link_GDrive && String(d.Link_GDrive).startsWith('http');
+  if (hasLink) {
+    const direct = getDriveDirectLink(d.Link_GDrive);
+    fotoAwal.innerHTML = `<img src="${direct}" alt="Foto Kerusakan" onerror="this.parentElement.innerHTML='<div class=\'foto-preview-empty\'><div class=\'pei\'>🖼️</div><p>Foto tidak dapat dimuat.<br><a href=\'${d.Link_GDrive}\' target=\'_blank\' style=\'color:var(--primary)\'>Buka di Drive ↗</a></p></div>'">`;
+    document.getElementById('vwBtnOpen').style.display = '';
+  } else {
+    fotoAwal.innerHTML = '<div class="foto-preview-empty"><div class="pei">📷</div><p>Belum ada foto kerusakan</p></div>';
+    document.getElementById('vwBtnOpen').style.display = 'none';
+  }
+
+  // Foto selesai
+  const hasFotoSelesai = d.Link_Foto_Selesai && String(d.Link_Foto_Selesai).startsWith('http');
+  const fotoSelesaiWrap = document.getElementById('vwFotoSelesaiWrap');
+  if (hasFotoSelesai) {
+    fotoSelesaiWrap.style.display = '';
+    const direct2 = getDriveDirectLink(d.Link_Foto_Selesai);
+    document.getElementById('vwFotoSelesai').innerHTML = `<img src="${direct2}" alt="Foto Bukti Selesai" onerror="this.parentElement.innerHTML='<div class=\'foto-preview-empty\'><div class=\'pei\'>✅</div><p>Foto tidak dapat dimuat.<br><a href=\'${d.Link_Foto_Selesai}\' target=\'_blank\' style=\'color:var(--primary)\'>Buka di Drive ↗</a></p></div>'">`;
+    document.getElementById('vwBtnOpenSelesai').style.display = '';
+  } else {
+    fotoSelesaiWrap.style.display = d.Status === 'Selesai Diperbaiki' ? '' : 'none';
+    document.getElementById('vwFotoSelesai').innerHTML = '<div class="foto-preview-empty"><div class="pei">✅</div><p>Belum ada foto bukti selesai</p></div>';
+    document.getElementById('vwBtnOpenSelesai').style.display = 'none';
+  }
+
+  // Info grid
+  const sc = d.Status==='Selesai Diperbaiki'?'t-hijau':d.Status==='Dalam Perbaikan'?'t-orange':'t-merah';
+  document.getElementById('vwInfoGrid').innerHTML = `
+    <div class="foto-info-item"><label>Status</label><span class="ftag ${sc}">${d.Status}</span></div>
+    <div class="foto-info-item"><label>Ruangan</label><span>${d.Nama_Ruangan||'—'}</span></div>
+    <div class="foto-info-item"><label>Area</label><span>${d.Area_Lantai||'—'}</span></div>
+    <div class="foto-info-item"><label>Item</label><span>${d.Item_Bermasalah||'—'}</span></div>
+    <div class="foto-info-item"><label>Pelapor</label><span>${d.Pelapor||'—'}</span></div>
+    <div class="foto-info-item"><label>Tanggal</label><span>${fmtDate(d.Tanggal_Temuan)}</span></div>
+    ${d.Tanggal_Selesai?`<div class="foto-info-item" style="grid-column:1/-1"><label>Selesai Diperbaiki</label><span style="color:var(--green-dark)">${fmtDate(d.Tanggal_Selesai)}</span></div>`:''}
+  `;
+
+  // Deskripsi
+  const vwDesc = document.getElementById('vwDeskripsi');
+  if (d.Deskripsi) { vwDesc.style.display=''; document.getElementById('vwDeskripsiTxt').textContent = d.Deskripsi; }
+  else vwDesc.style.display='none';
+
+  // Catatan teknisi
+  const vwCat = document.getElementById('vwCatatan');
+  if (d.Catatan_Teknisi) { vwCat.style.display=''; document.getElementById('vwCatatanTxt').textContent = d.Catatan_Teknisi; }
+  else vwCat.style.display='none';
+
+  document.getElementById('mViewer').classList.add('open');
+}
+
+function closeViewer() {
+  document.getElementById('mViewer').classList.remove('open');
+}
+
+function openFotoLink(type) {
+  if (!viewerFoto) return;
+  const url = type==='selesai' ? viewerFoto.Link_Foto_Selesai : viewerFoto.Link_GDrive;
+  if (url) window.open(url, '_blank');
+}
+
+// ── EDIT FOTO ──────────────────────────────────────────────
+function openEditFromViewer() {
+  if (!viewerFoto) return;
+  closeViewer();
+  openEditModal(viewerFoto.ID);
+}
+
+function openEditModal(id) {
+  const d = S.foto.find(f => f.ID === id);
+  if (!d) { toast('Data tidak ditemukan','error'); return; }
+  S.editId = id;
+  // Pre-fill form
+  const sel = document.getElementById('efRoom');
+  for (const o of sel.options) {
+    if (o.text.startsWith(d.Nama_Ruangan)) { sel.value = o.value; break; }
+  }
+  // Set item
+  const itemSel = document.getElementById('efItem');
+  for (const o of itemSel.options) { if (o.value === d.Item_Bermasalah) { itemSel.value = o.value; break; } }
+  document.getElementById('efDesc').value = d.Deskripsi || '';
+  document.getElementById('efLink').value = d.Link_GDrive || '';
+  document.getElementById('efKet').value  = d.Keterangan || '';
+  document.getElementById('mEditFoto').classList.add('open');
+}
+
+async function submitEditFoto() {
+  if (!S.connected) { toast('Hubungkan ke Google Sheets dulu','error'); return; }
+  const rv = document.getElementById('efRoom').value;
+  const [,rname,area] = rv ? rv.split('|') : ['','',''];
+  const btn = document.getElementById('btnSaveEdit');
+  btn.disabled=true; btn.textContent='⏳ Menyimpan...';
+  try {
+    const r = await apiPost({
+      action:'editFoto', id:S.editId,
+      namaRuangan:rname, areaLantai:area,
+      itemBermasalah:document.getElementById('efItem').value,
+      deskripsi:document.getElementById('efDesc').value,
+      linkGDrive:document.getElementById('efLink').value,
+      keterangan:document.getElementById('efKet').value
+    });
+    if (r.ok) { toast('✅ Laporan diperbarui!','success'); closeModal('mEditFoto'); loadData(); }
+    else throw new Error(r.error);
+  } catch(e) { toast('❌ '+e.message,'error'); }
+  finally { btn.disabled=false; btn.textContent='💾 Simpan Perubahan'; }
+}
+
+// ── DELETE FOTO ────────────────────────────────────────────
+function showConfirmDelete() {
+  closeViewer();
+  document.getElementById('confirmDelete').classList.add('open');
+}
+
+async function confirmDeleteFoto() {
+  if (!S.connected || !viewerFoto) return;
+  const btn = document.getElementById('btnConfirmDel');
+  btn.disabled=true; btn.textContent='⏳ Menghapus...';
+  try {
+    const r = await apiPost({ action:'deleteFoto', id:viewerFoto.ID });
+    if (r.ok) {
+      toast('🗑️ Laporan dihapus','success');
+      document.getElementById('confirmDelete').classList.remove('open');
+      viewerFoto = null;
+      loadData();
+    } else throw new Error(r.error);
+  } catch(e) { toast('❌ '+e.message,'error'); }
+  finally { btn.disabled=false; btn.textContent='Ya, Hapus'; }
+}
+
 // ── HELPERS ───────────────────────────────────────────────
 function fmtDate(v){ if(!v) return '—'; const d=new Date(v); return isNaN(d)?v:d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
 let _tt;
 function toast(msg,type=''){ const el=document.getElementById('toast'); el.textContent=msg; el.className='toast show'+(type?' '+type:''); clearTimeout(_tt); _tt=setTimeout(()=>el.className='toast',3000); }
 </script>
+
+<!-- MODAL: Foto Viewer -->
+<div class="foto-viewer-overlay" id="mViewer">
+  <div class="foto-viewer-box">
+    <div class="foto-viewer-header">
+      <div class="foto-viewer-title" id="vwTitle">Detail Laporan</div>
+      <button class="modal-close" onclick="closeViewer()">✕</button>
+    </div>
+    <div class="foto-viewer-body">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">📷 Foto Kerusakan</div>
+        <div class="foto-preview-wrap" id="vwFotoAwal">
+          <div class="foto-preview-empty"><div class="pei">🖼️</div><p>Belum ada foto</p></div>
+        </div>
+      </div>
+      <div id="vwFotoSelesaiWrap" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">✅ Foto Bukti Selesai</div>
+        <div class="foto-preview-wrap" id="vwFotoSelesai">
+          <div class="foto-preview-empty"><div class="pei">✅</div><p>Belum ada foto bukti</p></div>
+        </div>
+      </div>
+      <div class="foto-info-grid" id="vwInfoGrid"></div>
+      <div id="vwDeskripsi" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Deskripsi</div>
+        <div style="font-size:13px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-style:italic" id="vwDeskripsiTxt"></div>
+      </div>
+      <div id="vwCatatan" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Catatan Teknisi</div>
+        <div style="font-size:13px;color:var(--text2);background:var(--green-light);border:1px solid #a8e6be;border-radius:8px;padding:10px 12px" id="vwCatatanTxt"></div>
+      </div>
+    </div>
+    <div class="foto-viewer-actions">
+      <button class="btn-vw btn-vw-open" id="vwBtnOpen" onclick="openFotoLink('awal')" style="display:none">🔗 Buka Foto</button>
+      <button class="btn-vw btn-vw-open" id="vwBtnOpenSelesai" onclick="openFotoLink('selesai')" style="display:none">✅ Buka Foto Selesai</button>
+      <button class="btn-vw btn-vw-edit" id="vwBtnEdit" onclick="openEditFromViewer()">✏️ Edit</button>
+      <button class="btn-vw btn-vw-delete" id="vwBtnDelete" onclick="showConfirmDelete()">🗑️ Hapus</button>
+      <button class="btn-vw btn-vw-close" onclick="closeViewer()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-box" id="confirmDelete">
+  <div class="confirm-inner">
+    <div style="font-size:36px;margin-bottom:8px">🗑️</div>
+    <h3>Hapus Laporan?</h3>
+    <p>Data laporan ini akan dihapus permanen dari Google Sheets dan tidak bisa dikembalikan.</p>
+    <div class="confirm-btns">
+      <button class="btn-cancel-del" onclick="document.getElementById('confirmDelete').classList.remove('open')">Batal</button>
+      <button class="btn-confirm-del" id="btnConfirmDel" onclick="confirmDeleteFoto()">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Laporan Foto -->
+<div class="modal-overlay" id="mEditFoto">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">✏️ Edit Laporan</div><button class="modal-close" onclick="closeModal('mEditFoto')">✕</button></div>
+    <div class="fg"><label>Ruangan</label><select id="efRoom"><option value="">— Pilih Ruangan —</option></select></div>
+    <div class="fg"><label>Item Bermasalah</label>
+      <select id="efItem">
+        <option value="">— Pilih Item —</option>
+        <option>Sabun Habis</option><option>Tissue Habis</option>
+        <option>Wastafel Kotor</option><option>Wastafel Rusak / Bocor</option>
+        <option>Tempat Sampah Penuh</option><option>Tempat Sampah Rusak</option>
+        <option>Poster Tidak Ada</option><option>Poster Rusak / Kotor</option>
+        <option>Lainnya</option>
+      </select>
+    </div>
+    <div class="fg"><label>Deskripsi</label><textarea id="efDesc" rows="2"></textarea></div>
+    <div class="fg"><label>Link Foto Kerusakan (Google Drive)</label><input type="url" id="efLink" placeholder="https://drive.google.com/file/d/..."></div>
+    <div class="fg"><label>Keterangan</label><textarea id="efKet" rows="2"></textarea></div>
+    <button class="btn-submit" id="btnSaveEdit" onclick="submitEditFoto()">💾 Simpan Perubahan</button>
+  </div>
+</div>
+
 </body>
 </html>
