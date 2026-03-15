@@ -633,7 +633,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="cfg-grid">
     <div class="cfg-field" style="grid-column:1/-1">
       <label>URL Google Apps Script</label>
-      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbyOKm0WXonaAXWBiwTfTe6yJ7H4vNRZhgNE6bScwspt5aZ04SjejRuQNqlFopg_p_vV9w/exec">
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbwdxiIac0acE_YKj_dOawk3t0AwziKIseE3fTTHjQQGaPql7X2IyA1seqxw6_V0j46Y6g/exec">
     </div>
     <div class="cfg-field">
       <label>Bulan</label>
@@ -842,10 +842,11 @@ tbody td{padding:11px 14px;color:var(--text)}
 <script>
 // ── STATE ─────────────────────────────────────────────────
 const S={
-  apiUrl:'https://script.google.com/macros/s/AKfycbyOKm0WXonaAXWBiwTfTe6yJ7H4vNRZhgNE6bScwspt5aZ04SjejRuQNqlFopg_p_vV9w/exec',
+  apiUrl:'https://script.google.com/macros/s/AKfycbwdxiIac0acE_YKj_dOawk3t0AwziKIseE3fTTHjQQGaPql7X2IyA1seqxw6_V0j46Y6g/exec',
   bulan:String(new Date().getMonth()+1),
   tahun:String(new Date().getFullYear()),
   rooms:[],summary:null,foto:[],rekap:[],
+  fotoFiltered:[], // current filtered list for index-based access
   fotoFilter:'semua',connected:false,
   upId:null,upStatus:null
 };
@@ -1023,13 +1024,13 @@ function renderFoto(filter){
   const list=document.getElementById('fotoList');
   let data=S.foto;
   if(f&&f!=='semua') data=data.filter(x=>x.Status===f);
+  S.fotoFiltered=data; // store for index-based access
   if(!data.length){
     list.innerHTML=`<div class="empty-state"><div class="ei">📷</div><p>Belum ada laporan${f&&f!=='semua'?' dengan status ini':''}.</p></div>`;
     return;
   }
-  list.innerHTML=data.map(d=>{
+  list.innerHTML=data.map((d,idx)=>{
     const sc=d.Status==='Selesai Diperbaiki'?'selesai':d.Status==='Dalam Perbaikan'?'perbaikan':'dilaporkan';
-    const hasLink=d.Link_GDrive&&String(d.Link_GDrive).startsWith('http');
     const hasFotoSelesai=d.Link_Foto_Selesai&&String(d.Link_Foto_Selesai).startsWith('http');
     const s1=sc==='dilaporkan'?'s-active':'s-done';
     const s2=sc==='perbaikan'?'s-active':sc==='selesai'?'s-done':'';
@@ -1038,7 +1039,9 @@ function renderFoto(filter){
     const l2=sc==='selesai'?'done':'';
     const tagCls=sc==='dilaporkan'?'t-merah':sc==='perbaikan'?'t-orange':'t-hijau';
     const canUpdate=d.Status!=='Selesai Diperbaiki';
-    const safeId=encodeURIComponent(d.ID);
+    // Use index-based reference to avoid special char issues in onclick
+    const fi=S.fotoFiltered.indexOf(d);
+    const realIdx=fi>=0?fi:idx;
     return `<div class="foto-card fc-${sc}">
       <div class="foto-top">
         <div class="foto-dot ${sc}"></div>
@@ -1063,9 +1066,9 @@ function renderFoto(filter){
         <div class="step-item ${s3}"><div class="step-circle">3</div><span class="step-label">Selesai</span></div>
       </div>
       <div class="action-bar">
-        <button class="btn-act btn-foto-act" onclick="openViewer('${safeId}')">🔍 Lihat Detail</button>
-        ${canUpdate?`<button class="btn-act btn-perbaikan" onclick="openStatusModal('${safeId}','${(d.Nama_Ruangan||'').replace(/'/g,"\'")}','${(d.Item_Bermasalah||'').replace(/'/g,"\'")}','Dalam Perbaikan')">🔧 Perbaikan</button>`:''}
-        ${canUpdate?`<button class="btn-act btn-selesai" onclick="openStatusModal('${safeId}','${(d.Nama_Ruangan||'').replace(/'/g,"\'")}','${(d.Item_Bermasalah||'').replace(/'/g,"\'")}','Selesai Diperbaiki')">✅ Selesai</button>`:''}
+        <button class="btn-act btn-foto-act" onclick="openViewerByIdx(${realIdx})">🔍 Lihat Detail</button>
+        ${canUpdate?`<button class="btn-act btn-perbaikan" onclick="openStatusByIdx(${realIdx},'Dalam Perbaikan')">🔧 Perbaikan</button>`:''}
+        ${canUpdate?`<button class="btn-act btn-selesai" onclick="openStatusByIdx(${realIdx},'Selesai Diperbaiki')">✅ Selesai</button>`:''}
         ${!canUpdate?`<div class="selesai-badge">✅ Selesai ${d.Tanggal_Selesai?'· '+fmtDate(d.Tanggal_Selesai):''}</div>`:''}
       </div>
     </div>`;
@@ -1403,6 +1406,19 @@ function switchTab(id){
 // ── FOTO VIEWER ───────────────────────────────────────────────
 let viewerFoto = null;
 
+function openViewerByIdx(idx){
+  const d = S.fotoFiltered[idx];
+  if(!d){ toast('Data tidak ditemukan','error'); return; }
+  viewerFoto = d;
+  openViewerWithData(d);
+}
+
+function openStatusByIdx(idx, defaultStatus){
+  const d = S.fotoFiltered[idx];
+  if(!d){ toast('Data tidak ditemukan','error'); return; }
+  openStatusModal(d.ID, d.Nama_Ruangan, d.Item_Bermasalah, defaultStatus);
+}
+
 function getDriveDirectLink(url) {
   if (!url) return null;
   // Convert Google Drive share link to direct embed/thumbnail
@@ -1416,6 +1432,10 @@ function openViewer(safeId) {
   const d = S.foto.find(f => f.ID === id);
   if (!d) { toast('Data tidak ditemukan','error'); return; }
   viewerFoto = d;
+  openViewerWithData(d);
+}
+
+function openViewerWithData(d) {
 
   document.getElementById('vwTitle').textContent = d.Nama_Ruangan || '—';
 
