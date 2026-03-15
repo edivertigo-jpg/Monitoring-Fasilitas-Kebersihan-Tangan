@@ -579,7 +579,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="cfg-grid">
     <div class="cfg-field" style="grid-column:1/-1">
       <label>URL Google Apps Script</label>
-      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbwCkPOY-MKlWaKei9cqPS_2UNMZpFlSGaL3uSYd7il9fCwmTCLFYK7gi6rKfFNzoMTQQA/exec">
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbyOKm0WXonaAXWBiwTfTe6yJ7H4vNRZhgNE6bScwspt5aZ04SjejRuQNqlFopg_p_vV9w/exec">
     </div>
     <div class="cfg-field">
       <label>Bulan</label>
@@ -760,7 +760,7 @@ tbody td{padding:11px 14px;color:var(--text)}
 <script>
 // ── STATE ─────────────────────────────────────────────────
 const S={
-  apiUrl:'https://script.google.com/macros/s/AKfycbwCkPOY-MKlWaKei9cqPS_2UNMZpFlSGaL3uSYd7il9fCwmTCLFYK7gi6rKfFNzoMTQQA/exec',
+  apiUrl:'https://script.google.com/macros/s/AKfycbyOKm0WXonaAXWBiwTfTe6yJ7H4vNRZhgNE6bScwspt5aZ04SjejRuQNqlFopg_p_vV9w/exec',
   bulan:String(new Date().getMonth()+1),
   tahun:String(new Date().getFullYear()),
   rooms:[],summary:null,foto:[],rekap:[],
@@ -1109,10 +1109,15 @@ async function submitChecklist(){
   const [rid,rname,area]=rv.split('|');
   const obs=document.getElementById('mObs').value||document.getElementById('obsName').value; if(!obs){ toast('Isi nama observer','error'); return; }
   const tgl=document.getElementById('mTgl').value; if(!tgl){ toast('Pilih tanggal','error'); return; }
+  // Validasi semua item checklist harus diisi
+  const ITEM_KEYS=['Sabun','Tissue','Wastafel_Bersih','Wastafel_Bebas','Tempat_Sampah','Poster'];
+  const belumDiisi=ITEM_KEYS.filter(k=>!ckS[k]);
+  if(belumDiisi.length>0){ toast(`Isi semua checklist dulu (${belumDiisi.length} belum)`, 'error'); return; }
   const btn=document.getElementById('btnSI'); btn.disabled=true; btn.textContent='⏳ Menyimpan...';
   try{
-    const dt=new Date(tgl);
-    const r=await apiPost({action:'saveMonitoring',ruanganId:rid,namaRuangan:rname,areaLantai:area,tanggal:tgl,bulan:dt.getMonth()+1,tahun:dt.getFullYear(),observer:obs,checklist:ckS,keterangan:document.getElementById('mKet').value});
+    // Parse tanggal langsung dari string YYYY-MM-DD untuk hindari timezone bug
+    const [tglTahun,tglBulan,tglHari] = tgl.split('-').map(Number);
+    const r=await apiPost({action:'saveMonitoring',ruanganId:rid,namaRuangan:rname,areaLantai:area,tanggal:tgl,bulan:tglBulan,tahun:tglTahun,observer:obs,checklist:ckS,keterangan:document.getElementById('mKet').value});
     if(r.ok){ toast(`✅ Tersimpan! Skor: ${r.skor}%`,'success'); closeModal('mInput'); resetCk(); document.getElementById('mKet').value=''; loadData(); }
     else throw new Error(r.error);
   } catch(e){ toast('❌ '+e.message,'error'); }
