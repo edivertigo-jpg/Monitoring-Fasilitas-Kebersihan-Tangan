@@ -891,6 +891,8 @@ function dismissPWA(){ document.getElementById('pwaBanner').classList.remove('sh
 // ── INIT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   fab = document.getElementById('fab');
+  const _mViewer=document.getElementById('mViewer');
+  if(_mViewer) _mViewer.addEventListener('click',e=>{ if(e.target===_mViewer) closeViewer(); });
   S.apiUrl=localStorage.getItem('hh_api')||S.apiUrl;
   S.bulan =localStorage.getItem('hh_bln')||S.bulan;
   S.tahun =localStorage.getItem('hh_thn')||S.tahun;
@@ -986,11 +988,12 @@ async function loadData(){
   }
   if(rekap.status==='fulfilled'&&rekap.value.ok){
     S.rekap=rekap.value.data||[];
-    console.log('Rekap loaded:',S.rekap.length,'rows');
-    if(S.rekap.length>0) console.log('Sample row keys:',Object.keys(S.rekap[0]), 'values:',Object.values(S.rekap[0]).slice(0,5));
+    console.log('Rekap loaded:',S.rekap.length,'rows, bulan='+S.bulan+' tahun='+S.tahun);
+    if(S.rekap.length>0) console.log('Row 0:',JSON.stringify(S.rekap[0]));
+    else console.warn('Rekap kosong! Raw response count:',rekap.value.count, 'bulan filter:',S.bulan,'tahun:',S.tahun);
     renderRekap();
   } else if(rekap.status==='fulfilled'){
-    console.warn('getMonitoring response:',JSON.stringify(rekap.value));
+    console.warn('getMonitoring error:',JSON.stringify(rekap.value));
   } else {
     console.warn('getMonitoring failed:',rekap.reason);
   }
@@ -1425,8 +1428,7 @@ function pickStatusByVal(val){
 }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }); });
-const _mViewer=document.getElementById('mViewer');
-if(_mViewer) _mViewer.addEventListener('click',e=>{ if(e.target===_mViewer) closeViewer(); });
+// mViewer listener moved to DOMContentLoaded
 
 // ── SUBMIT ────────────────────────────────────────────────
 async function submitChecklist(){
