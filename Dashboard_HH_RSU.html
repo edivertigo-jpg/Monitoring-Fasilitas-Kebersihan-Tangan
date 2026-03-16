@@ -1281,7 +1281,7 @@ function triggerGallery(key){
   inp.click();
 }
 
-// Kompres gambar sebelum upload
+// Kompres gambar
 function compressImage(base64, maxWidth, quality) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -1290,12 +1290,35 @@ function compressImage(base64, maxWidth, quality) {
       if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
     img.src = base64;
   });
+}
+
+// Upload dengan retry
+async function uploadWithRetry(base64, fileName, maxTry=3) {
+  // Coba dengan kualitas menurun setiap retry
+  const qualities = [{w:600,q:0.5},{w:400,q:0.35},{w:300,q:0.25}];
+  for (let i=0; i<maxTry; i++) {
+    try {
+      const {w,q} = qualities[Math.min(i, qualities.length-1)];
+      const compressed = await compressImage(base64, w, q);
+      const sizeKB = Math.round(compressed.length * 0.75 / 1024);
+      console.log(`Upload attempt ${i+1}: ${sizeKB}KB`);
+      const res = await Promise.race([
+        apiPost({action:'uploadFoto', base64:compressed, mimeType:'image/jpeg', fileName:fileName}),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error('Timeout')),30000))
+      ]);
+      if (res && res.ok) return res;
+      if (res && res.error) throw new Error(res.error);
+    } catch(err) {
+      console.warn(`Attempt ${i+1} failed:`, err.message);
+      if (i === maxTry-1) throw err;
+      await new Promise(r=>setTimeout(r,1000));
+    }
+  }
 }
 
 async function handleFileSelected(inp, key){
@@ -1317,16 +1340,10 @@ async function handleFileSelected(inp, key){
     fname.style.color='var(--orange)';
 
     try {
-      // Kompres gambar sebelum upload (max 800px, quality 0.7)
-      const compressed = await compressImage(b64, 800, 0.7);
-      
-      // Upload ke Drive via Apps Script
-      const res = await apiPost({
-        action:   'uploadFoto',
-        base64:   compressed,
-        mimeType: 'image/jpeg',
-        fileName: file.name.replace(/\.[^.]+$/, '') + '.jpg'
-      });
+      // Upload dengan kompresi otomatis dan retry
+      const fname2 = file.name.replace(/[^a-zA-Z0-9.]/g,'_').replace(/\.[^.]*$/,'')+'.jpg';
+      fname.innerHTML='⏳ Mengupload... (bisa 10-30 detik)';
+      const res = await uploadWithRetry(b64, fname2);
 
       if(res.ok){
         dmgData[key].photoBase64 = b64;
@@ -1384,8 +1401,7 @@ function triggerFotoSelesai(mode){
       fname.innerHTML='⏳ Mengupload ke Google Drive...';
       fname.style.cssText='display:block;font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;color:var(--orange);background:var(--orange-light)';
       try {
-        const compressed2=await compressImage(b64,800,0.7);
-      const res=await apiPost({action:'uploadFoto',base64:compressed2,mimeType:'image/jpeg',fileName:'bukti_selesai_'+Date.now()+'.jpg'});
+        const res=await uploadWithRetry(b64,'bukti_selesai_'+Date.now()+'.jpg');
         if(res.ok){
           document.getElementById('linkFotoSelesai').value=res.viewUrl;
           fname.innerHTML='✅ '+res.fileName+' — tersimpan di Drive';
