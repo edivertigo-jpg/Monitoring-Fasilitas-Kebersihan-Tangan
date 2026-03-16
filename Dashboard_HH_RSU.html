@@ -961,12 +961,28 @@ function showConn(t,m){ const el=document.getElementById('connMsg'); el.classNam
 
 // ── API ───────────────────────────────────────────────────
 async function apiFetch(action,params={}){
-  const u=new URL(S.apiUrl);
-  u.searchParams.set('action',action);
-  Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
-  return (await fetch(u.toString())).json();
+  try{
+    const u=new URL(S.apiUrl);
+    u.searchParams.set('action',action);
+    Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+    const res=await fetch(u.toString());
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  }catch(e){
+    console.error('apiFetch ['+action+'] error:',e.message);
+    return {error:e.message, ok:false};
+  }
 }
-async function apiPost(body){ return (await fetch(S.apiUrl,{method:'POST',body:JSON.stringify(body)})).json(); }
+async function apiPost(body){
+  try{
+    const res=await fetch(S.apiUrl,{method:'POST',body:JSON.stringify(body)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  }catch(e){
+    console.error('apiPost ['+body.action+'] error:',e.message);
+    throw e; // re-throw supaya caller bisa handle
+  }
+}
 
 async function loadData(){
   const [rooms,summary,foto,rekap]=await Promise.allSettled([
@@ -1089,6 +1105,12 @@ function renderFoto(filter){
             ${hasFotoSelesai?`<span class="ftag t-hijau">📷 Ada Foto Bukti</span>`:''}
           </div>
           ${d.Deskripsi?`<div class="foto-desc">"${d.Deskripsi}"</div>`:''}
+          ${(d.Link_GDrive&&String(d.Link_GDrive).startsWith('http'))?
+          '<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);max-height:120px;background:var(--surface2)">'+
+          '<img src="'+getDriveDirectLink(d.Link_GDrive)+'" '+
+          'style="width:100%;max-height:120px;object-fit:cover;display:block" '+
+          'onerror="this.parentElement.style.display=\'none\'">'+
+          '</div>':''}
         </div>
       </div>
       <div class="stepper">
@@ -1438,13 +1460,27 @@ function openInputModal(roomId,roomName,areaLantai){
   resetCk();
   document.getElementById('mInput').classList.add('open');
 }
-function openFotoModal(){ document.getElementById('mFoto').classList.add('open'); }
+function openFotoModal(){
+  // Reset form setiap kali modal dibuka
+  ['fDesc','fLink','fKet'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const fRoom=document.getElementById('fRoom'); if(fRoom) fRoom.value='';
+  const fItem=document.getElementById('fItem'); if(fItem) fItem.value='';
+  const fPelapor=document.getElementById('fPelapor'); if(fPelapor) fPelapor.value='';
+  document.getElementById('mFoto').classList.add('open');
+}
 function openStatusModal(id,ruangan,item,def){
   S.upId=id; S.upStatus=def||'Dilaporkan';
   document.getElementById('mStTitle').textContent='🔧 Update Status · '+ruangan;
   document.getElementById('mStDesc').textContent='📍 '+ruangan+' — '+item;
   pickStatusByVal(S.upStatus);
   document.getElementById('tglWrap').style.display=S.upStatus==='Selesai Diperbaiki'?'block':'none';
+  // Reset foto selesai setiap kali modal dibuka (hindari data laporan sebelumnya)
+  document.getElementById('linkFotoSelesai').value='';
+  document.getElementById('catatanTek').value='';
+  const prevSel=document.getElementById('previewFotoSelesai');
+  if(prevSel){ prevSel.src=''; prevSel.style.display='none'; }
+  const fnSel=document.getElementById('fnameFotoSelesai');
+  if(fnSel){ fnSel.style.display='none'; fnSel.innerHTML=''; }
   document.getElementById('mStatus').classList.add('open');
 }
 function pickStatus(val,el){
@@ -1498,6 +1534,20 @@ async function submitChecklist(){
           const hasPhoto=d.photoBase64&&d.photoBase64.length>0;
           const linkToSave=d.link||(hasPhoto?`[Foto: ${d.photoName||'foto_kerusakan.jpg'} - tersimpan di perangkat]`:'');
           if(hasPhoto||d.link||d.desc){
+            // Jika foto belum selesai upload (link kosong tapi ada base64), upload dulu
+            let linkFinal = d.link || '';
+            if(!linkFinal && d.photoBase64 && d.photoBase64.length > 0){
+              try {
+                const fname2 = (d.photoName||'foto_kerusakan.jpg').replace(/[^a-zA-Z0-9.]/g,'_').replace(/\.[^.]*$/,'')+'.jpg';
+                const upRes = await uploadWithRetry(d.photoBase64, fname2);
+                if(upRes && upRes.ok) {
+                  linkFinal = upRes.viewUrl;
+                  dmgData[key].link = linkFinal;
+                }
+              } catch(upErr) {
+                console.warn('Upload ulang gagal:', upErr.message);
+              }
+            }
             const dr=await apiPost({
               action:'saveFoto',
               areaLantai:ar, namaRuangan:rn,
@@ -1505,7 +1555,7 @@ async function submitChecklist(){
               deskripsi:d.desc||'',
               tanggalTemuan:tgl,
               pelapor:pelapor||'—',
-              linkGDrive:d.link||'',
+              linkGDrive:linkFinal,
               keterangan:d.desc||''
             });
             if(dr.ok) savedDmg.push(itemLabel);
@@ -1589,10 +1639,39 @@ function openStatusByIdx(idx, defaultStatus){
 
 function getDriveDirectLink(url) {
   if (!url) return null;
-  // Convert Google Drive share link to direct embed/thumbnail
-  const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`;
+  // Ambil file ID dari berbagai format URL Google Drive
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m) {
+    const fid = m[1];
+    // Gunakan thumbnail API - paling reliable untuk preview
+    return `https://drive.google.com/thumbnail?id=${fid}&sz=w800`;
+  }
+  // Jika sudah dalam format thumbnail/uc, kembalikan langsung
+  if (url.includes('drive.google.com/thumbnail') || url.includes('drive.google.com/uc')) return url;
   return url;
+}
+
+function getDriveEmbedLink(url) {
+  if (!url) return null;
+  const m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+  return url;
+}
+
+function makeImgHtml(url, alt, fallbackUrl) {
+  if (!url) return '';
+  const thumb = getDriveDirectLink(url);
+  const open  = fallbackUrl || url;
+  return `<img src="${thumb}" alt="${alt}"
+    style="width:100%;height:auto;display:block;border-radius:6px;object-fit:contain;max-height:280px"
+    onerror="this.onerror=null;this.src='';this.style.display='none';
+      this.parentElement.insertAdjacentHTML('beforeend',
+        '<div style=\'text-align:center;padding:20px;color:var(--muted)\'>'+
+        '<div style=\'font-size:36px;margin-bottom:8px\'>🖼️</div>'+
+        '<p style=\'font-size:12px\'>Foto tidak dapat dimuat di sini.<br>'+
+        '<a href=\'${open}\' target=\'_blank\' style=\'color:var(--primary);font-weight:600\'>'+
+        'Buka foto di Google Drive ↗</a></p></div>'
+      )">`;
 }
 
 function openViewer(safeId) {
@@ -1611,11 +1690,10 @@ function openViewerWithData(d) {
   const fotoAwal = document.getElementById('vwFotoAwal');
   const hasLink = d.Link_GDrive && String(d.Link_GDrive).startsWith('http');
   if (hasLink) {
-    const direct = getDriveDirectLink(d.Link_GDrive);
-    fotoAwal.innerHTML = `<img src="${direct}" alt="Foto Kerusakan" onerror="this.parentElement.innerHTML='<div class=\'foto-preview-empty\'><div class=\'pei\'>🖼️</div><p>Foto tidak dapat dimuat.<br><a href=\'${d.Link_GDrive}\' target=\'_blank\' style=\'color:var(--primary)\'>Buka di Drive ↗</a></p></div>'">`;
+    fotoAwal.innerHTML = makeImgHtml(d.Link_GDrive, 'Foto Kerusakan', d.Link_GDrive);
     document.getElementById('vwBtnOpen').style.display = '';
   } else {
-    fotoAwal.innerHTML = '<div class="foto-preview-empty"><div class="pei">📷</div><p>Belum ada foto kerusakan</p></div>';
+    fotoAwal.innerHTML = '<div class="foto-preview-empty"><div class="pei">📷</div><p>Belum ada foto kerusakan.<br><small style="color:var(--muted)">Upload foto saat melaporkan atau edit laporan ini.</small></p></div>';
     document.getElementById('vwBtnOpen').style.display = 'none';
   }
 
@@ -1624,8 +1702,7 @@ function openViewerWithData(d) {
   const fotoSelesaiWrap = document.getElementById('vwFotoSelesaiWrap');
   if (hasFotoSelesai) {
     fotoSelesaiWrap.style.display = '';
-    const direct2 = getDriveDirectLink(d.Link_Foto_Selesai);
-    document.getElementById('vwFotoSelesai').innerHTML = `<img src="${direct2}" alt="Foto Bukti Selesai" onerror="this.parentElement.innerHTML='<div class=\'foto-preview-empty\'><div class=\'pei\'>✅</div><p>Foto tidak dapat dimuat.<br><a href=\'${d.Link_Foto_Selesai}\' target=\'_blank\' style=\'color:var(--primary)\'>Buka di Drive ↗</a></p></div>'">`;
+    document.getElementById('vwFotoSelesai').innerHTML = makeImgHtml(d.Link_Foto_Selesai, 'Foto Bukti Selesai', d.Link_Foto_Selesai);
     document.getElementById('vwBtnOpenSelesai').style.display = '';
   } else {
     fotoSelesaiWrap.style.display = d.Status === 'Selesai Diperbaiki' ? '' : 'none';
