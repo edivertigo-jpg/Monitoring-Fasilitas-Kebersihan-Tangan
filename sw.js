@@ -1,4 +1,6 @@
-const CACHE = 'hh-monitor-v1';
+// Service Worker — Monitoring HH RSU Surya Husadha — PPI
+// Cache name unik agar tidak bentrok dengan PWA lain di domain yang sama
+const CACHE = 'hh-monitor-ppi-shnd-v2';
 const ASSETS = [
   './Dashboard_HH_RSU.html',
   './manifest.json',
@@ -13,6 +15,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
+    // Hapus cache lama (termasuk cache dari PWA lain yang bentrok)
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
@@ -20,14 +23,14 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for API calls
+  // Network-first untuk API calls
   if (e.request.url.includes('script.google.com')) {
     e.respondWith(
       fetch(e.request).catch(() => new Response(JSON.stringify({error:'Offline'}), {headers:{'Content-Type':'application/json'}}))
     );
     return;
   }
-  // Cache-first for assets
+  // Cache-first untuk assets
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       const clone = res.clone();
