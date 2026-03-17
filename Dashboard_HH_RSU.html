@@ -905,7 +905,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   buildItemGrid();
   if(S.apiUrl) connectAPI(true);
   // Service Worker
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', {scope: './'}).catch(()=>{});
 });
 
 function buildDropdowns(){
