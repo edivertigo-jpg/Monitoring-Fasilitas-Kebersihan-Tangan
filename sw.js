@@ -1,8 +1,8 @@
 // Service Worker — Monitoring HH RSU Surya Husadha — PPI
 // Cache name unik agar tidak bentrok dengan PWA lain di domain yang sama
-const CACHE = 'hh-monitor-ppi-shnd-v2';
+const CACHE = 'hh-monitor-ppi-shnd-v3';
 const ASSETS = [
-  './Dashboard_HH_RSU.html',
+  './index.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap'
 ];
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    // Hapus cache lama (termasuk cache dari PWA lain yang bentrok)
+    // Hapus cache lama (termasuk cache dari versi sebelumnya yang mengarah ke file lama)
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())

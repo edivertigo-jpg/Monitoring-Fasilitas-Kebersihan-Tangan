@@ -3,7 +3,7 @@
   "name": "Monitoring HH — RSU Surya Husadha",
   "short_name": "HH Monitor PPI",
   "description": "Dashboard Monitoring Fasilitas Hand Hygiene Komite PPI RSU Surya Husadha Nusa Dua",
-  "start_url": "./Dashboard_HH_RSU.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F0F6FC",
