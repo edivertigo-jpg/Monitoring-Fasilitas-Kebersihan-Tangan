@@ -651,7 +651,7 @@ tbody td{padding:11px 14px;color:var(--text)}
   <div class="cfg-grid">
     <div class="cfg-field" style="grid-column:1/-1">
       <label>URL Google Apps Script</label>
-      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbx1WqC9S6to2CaoGYv76w0Uiu4_X7D0hGcmdn8TU9_S55CY1CG2nEojDT5Lolvnf5AQuA/exec">
+      <input id="cfgUrl" type="text" value="https://script.google.com/macros/s/AKfycbyTqvqzcfCc7XG75FPYeE_oHD-tj1ceGxteqV4-aBgFJ00u9_ZxB3APZvziydQHhZtO/exec">
     </div>
     <div class="cfg-field">
       <label>Bulan</label>
@@ -755,7 +755,7 @@ tbody td{padding:11px 14px;color:var(--text)}
     <select class="rekap-sel" id="rekapRoomFilter" onchange="onRekapRoomFilterChange()">
       <option value="">🚪 Semua Ruangan</option>
     </select>
-    <button onclick="loadData().then(()=>toast('✅ Diperbarui','success'))" style="background:var(--primary-light);border:1.5px solid var(--border2);color:var(--primary);font-size:11px;font-weight:700;font-family:var(--font);padding:7px 14px;border-radius:8px;cursor:pointer;flex-shrink:0">🔄 Refresh</button>
+    <button onclick="loadData({full:true}).then(()=>toast('✅ Diperbarui','success'))" style="background:var(--primary-light);border:1.5px solid var(--border2);color:var(--primary);font-size:11px;font-weight:700;font-family:var(--font);padding:7px 14px;border-radius:8px;cursor:pointer;flex-shrink:0">🔄 Refresh</button>
   </div>
   <div class="rekap-count" id="rekapCount" style="margin-bottom:10px"></div>
   <div id="rekapDebug" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto"></div>
@@ -881,7 +881,7 @@ window._fotoMap = {};
 
 // ── STATE ─────────────────────────────────────────────────
 const S={
-  apiUrl:'https://script.google.com/macros/s/AKfycbx1WqC9S6to2CaoGYv76w0Uiu4_X7D0hGcmdn8TU9_S55CY1CG2nEojDT5Lolvnf5AQuA/exec',
+  apiUrl:'https://script.google.com/macros/s/AKfycbyTqvqzcfCc7XG75FPYeE_oHD-tj1ceGxteqV4-aBgFJ00u9_ZxB3APZvziydQHhZtO/exec',
   bulan:String(new Date().getMonth()+1),
   tahun:String(new Date().getFullYear()),
   rooms:[],summary:null,foto:[],rekap:[],
@@ -1013,35 +1013,54 @@ async function apiPost(body){
   }
 }
 
-async function loadData(){
-  const [rooms,summary,foto,rekap]=await Promise.allSettled([
-    apiFetch('getRooms'),
-    apiFetch('getSummary',{bulan:S.bulan,tahun:S.tahun}),
-    apiFetch('getFoto'),
-    apiFetch('getMonitoring',{bulan:S.bulan,tahun:S.tahun})
-  ]);
-  if(rooms.status==='fulfilled'&&rooms.value.ok){
-    S.rooms=rooms.value.rooms||[]; populateRoomSelects(); renderRoomList();
+async function loadData(opts={}){
+  // full=true: ambil rooms+foto juga (perlu saat connect awal, refresh manual, atau setelah simpan/hapus data).
+  // full=false (default): cuma dashboard (summary+rekap gabung 1x baca sheet) — dipakai saat ganti bulan/tahun.
+  const full = opts.full===true || !S.rooms.length;
+  const tasks = {
+    dash: apiFetch('getDashboard',{bulan:S.bulan,tahun:S.tahun}),
+  };
+  if(full){ tasks.rooms=apiFetch('getRooms'); tasks.foto=apiFetch('getFoto'); }
+  const keys=Object.keys(tasks);
+  const settled=await Promise.allSettled(Object.values(tasks));
+  const r={}; keys.forEach((k,i)=>r[k]=settled[i]);
+
+  // Fallback: kalau Web App belum di-redeploy dengan action=getDashboard (masih versi lama),
+  // otomatis pakai cara lama (getSummary + getMonitoring terpisah) supaya tetap jalan.
+  let dashOk = r.dash.status==='fulfilled' && r.dash.value.ok;
+  let summaryVal=null, rekapVal=null, rekapCount=undefined;
+  if(dashOk){
+    summaryVal=r.dash.value.summary; rekapVal=r.dash.value.data; rekapCount=r.dash.value.count;
+  } else {
+    console.warn('getDashboard tidak tersedia, fallback ke getSummary+getMonitoring. Detail:', r.dash.status==='fulfilled'?r.dash.value:r.dash.reason);
+    const [sm,mo]=await Promise.allSettled([
+      apiFetch('getSummary',{bulan:S.bulan,tahun:S.tahun}),
+      apiFetch('getMonitoring',{bulan:S.bulan,tahun:S.tahun})
+    ]);
+    if(sm.status==='fulfilled'&&sm.value.ok) summaryVal=sm.value.summary;
+    else if(sm.status==='fulfilled') console.warn('getSummary error:',sm.value.error);
+    if(mo.status==='fulfilled'&&mo.value.ok){ rekapVal=mo.value.data; rekapCount=mo.value.count; }
+    else if(mo.status==='fulfilled') console.warn('getMonitoring error:',JSON.stringify(mo.value));
+  }
+
+  if(r.rooms&&r.rooms.status==='fulfilled'&&r.rooms.value.ok){
+    S.rooms=r.rooms.value.rooms||[]; populateRoomSelects(); renderRoomList();
     populateRekapRoomFilter(S.rekapArea);
   }
-  if(summary.status==='fulfilled'&&summary.value.ok){
-    S.summary=summary.value.summary; renderSummary();
-  } else if(summary.status==='fulfilled'&&summary.value.error){
-    console.warn('getSummary error:',summary.value.error);
+  if(summaryVal){
+    S.summary=summaryVal; renderSummary();
   }
-  if(foto.status==='fulfilled'&&foto.value.ok){
-    S.foto=foto.value.foto||[]; S.fotoFiltered=[...S.foto]; window._fotoMap={}; renderFoto(); updateFotoStat();
+  if(r.foto&&r.foto.status==='fulfilled'&&r.foto.value.ok){
+    S.foto=r.foto.value.foto||[]; S.fotoFiltered=[...S.foto]; window._fotoMap={}; renderFoto(); updateFotoStat();
   }
-  if(rekap.status==='fulfilled'&&rekap.value.ok){
-    S.rekap=rekap.value.data||[];
+  if(rekapVal){
+    S.rekap=rekapVal;
     console.log('Rekap loaded:',S.rekap.length,'rows, bulan='+S.bulan+' tahun='+S.tahun);
     if(S.rekap.length>0) console.log('Row 0:',JSON.stringify(S.rekap[0]));
-    else console.warn('Rekap kosong! Raw response count:',rekap.value.count, 'bulan filter:',S.bulan,'tahun:',S.tahun);
+    else console.warn('Rekap kosong! Raw response count:',rekapCount, 'bulan filter:',S.bulan,'tahun:',S.tahun);
     renderRekap();
-  } else if(rekap.status==='fulfilled'){
-    console.warn('getMonitoring error:',JSON.stringify(rekap.value));
   } else {
-    console.warn('getMonitoring failed:',rekap.reason);
+    console.warn('Data rekap gagal dimuat untuk bulan='+S.bulan+' tahun='+S.tahun);
   }
 }
 
@@ -1669,7 +1688,7 @@ async function submitChecklist(){
       } else {
         toast(`✅ Tersimpan! Skor: ${r.skor}%`,'success');
       }
-      closeModal('mInput'); resetCk(); document.getElementById('mKet').value=''; loadData();
+      closeModal('mInput'); resetCk(); document.getElementById('mKet').value=''; loadData({full:true});
     }
     else throw new Error(r.error);
   } catch(e){ toast('❌ '+e.message,'error'); }
@@ -1684,7 +1703,7 @@ async function submitFoto(){
   const btn=document.getElementById('btnSF'); btn.disabled=true; btn.textContent='⏳ Mengirim...';
   try{
     const r=await apiPost({action:'saveFoto',areaLantai:area,namaRuangan:rname,itemBermasalah:item,deskripsi:document.getElementById('fDesc').value,tanggalTemuan:new Date().toISOString().split('T')[0],pelapor,linkGDrive:document.getElementById('fLink').value,keterangan:document.getElementById('fKet').value});
-    if(r.ok){ toast('📸 Laporan terkirim!','success'); closeModal('mFoto'); ['fDesc','fLink','fKet'].forEach(id=>document.getElementById(id).value=''); switchTab('foto'); loadData(); }
+    if(r.ok){ toast('📸 Laporan terkirim!','success'); closeModal('mFoto'); ['fDesc','fLink','fKet'].forEach(id=>document.getElementById(id).value=''); switchTab('foto'); loadData({full:true}); }
     else throw new Error(r.error);
   } catch(e){ toast('❌ '+e.message,'error'); }
   finally{ btn.disabled=false; btn.textContent='📤 Kirim Laporan'; }
@@ -1697,7 +1716,7 @@ async function submitStatus(){
     const tglSelesai=S.upStatus==='Selesai Diperbaiki'?document.getElementById('tglSelesai').value:'';
     const linkFotoSelesai=S.upStatus==='Selesai Diperbaiki'?document.getElementById('linkFotoSelesai').value:'';
     const r=await apiPost({action:'updateStatus',id:S.upId,status:S.upStatus,tanggalSelesai:tglSelesai,linkFotoSelesai,catatan:document.getElementById('catatanTek').value});
-    if(r.ok){ const lbl=S.upStatus==='Selesai Diperbaiki'?'✅ Selesai dicatat!':'🔧 Status diperbarui!'; toast(lbl,'success'); closeModal('mStatus'); document.getElementById('catatanTek').value=''; document.getElementById('linkFotoSelesai').value=''; loadData(); }
+    if(r.ok){ const lbl=S.upStatus==='Selesai Diperbaiki'?'✅ Selesai dicatat!':'🔧 Status diperbarui!'; toast(lbl,'success'); closeModal('mStatus'); document.getElementById('catatanTek').value=''; document.getElementById('linkFotoSelesai').value=''; loadData({full:true}); }
     else throw new Error(r.error);
   } catch(e){ toast('❌ '+e.message,'error'); }
   finally{ btn.disabled=false; btn.textContent='✅ Simpan Status'; }
@@ -1721,7 +1740,7 @@ function openViewerByIdx(idx){
        || S.foto[idx];
   if(!d){
     toast('Memuat ulang...','');
-    loadData().then(()=>{
+    loadData({full:true}).then(()=>{
       const d2 = (window._fotoMap&&window._fotoMap['fi_'+idx])||S.fotoFiltered[idx]||S.foto[idx];
       if(d2){ viewerFoto=d2; openViewerWithData(d2); }
       else toast('Data tidak ditemukan','error');
@@ -1895,7 +1914,7 @@ async function submitEditFoto() {
       linkGDrive:document.getElementById('efLink').value,
       keterangan:document.getElementById('efKet').value
     });
-    if (r.ok) { toast('✅ Laporan diperbarui!','success'); closeModal('mEditFoto'); loadData(); }
+    if (r.ok) { toast('✅ Laporan diperbarui!','success'); closeModal('mEditFoto'); loadData({full:true}); }
     else throw new Error(r.error);
   } catch(e) { toast('❌ '+e.message,'error'); }
   finally { btn.disabled=false; btn.textContent='💾 Simpan Perubahan'; }
@@ -1917,7 +1936,7 @@ async function confirmDeleteFoto() {
       toast('🗑️ Laporan dihapus','success');
       document.getElementById('confirmDelete').classList.remove('open');
       viewerFoto = null;
-      loadData();
+      loadData({full:true});
     } else throw new Error(r.error);
   } catch(e) { toast('❌ '+e.message,'error'); }
   finally { btn.disabled=false; btn.textContent='Ya, Hapus'; }
