@@ -972,7 +972,7 @@ function toggleCfg(){ document.getElementById('cfgPanel').classList.toggle('open
 async function connectAPI(silent=false){
   const url=document.getElementById('cfgUrl').value.trim();
   if(!url){ showConn('err','URL tidak boleh kosong'); return; }
-  S.apiUrl=url; S.bulan=document.getElementById('cfgBulan').value; S.tahun=document.getElementById('cfgTahun').value;
+  S.apiUrl=url;
   localStorage.setItem('hh_api',url); localStorage.setItem('hh_bln',S.bulan); localStorage.setItem('hh_thn',S.tahun);
   try{
     if(!silent) showConn('','⏳ Menghubungkan...');
@@ -1062,6 +1062,9 @@ async function loadData(opts={}){
   } else {
     console.warn('Data rekap gagal dimuat untuk bulan='+S.bulan+' tahun='+S.tahun);
   }
+  if(!summaryVal && !rekapVal){
+    toast('⚠️ Gagal memuat data periode ini — cek koneksi/URL API','error');
+  }
 }
 
 // ── SUMMARY ───────────────────────────────────────────────
@@ -1071,10 +1074,11 @@ function renderSummary(){
   document.getElementById('stDiisi').textContent=s.totalDiisi;
   document.getElementById('stPct').textContent=s.rataKepatuhan+'%';
   updateFotoStat();
+  const periodeLabel = (MONTHS[+(s.bulan||S.bulan)-1]||'')+' '+(s.tahun||S.tahun);
   const areas=s.perArea||{};
   const grid=document.getElementById('areaGrid');
   if(!Object.keys(areas).length){
-    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="ei">📭</div><p>Belum ada data untuk<br><strong>${MONTHS[+S.bulan-1]} ${S.tahun}</strong></p></div>`;
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="ei">📭</div><p>Belum ada data untuk<br><strong>${periodeLabel}</strong></p></div>`;
   } else {
     grid.innerHTML=Object.keys(AREA_CLR).map(area=>{
       const d=areas[area]; const pct=d?parseFloat(d.rata):0;
@@ -1088,7 +1092,7 @@ function renderSummary(){
         <div class="area-bar-track">
           <div class="area-bar-fill" style="width:${pct}%;background:${c.g}"></div>
         </div>
-        <div class="area-meta">${d?d.jumlah+' entri · '+MONTHS[+S.bulan-1]+' '+S.tahun:'Belum ada data'} · <span style="color:var(--primary);font-weight:700">Lihat detail →</span></div>
+        <div class="area-meta">${d?d.jumlah+' entri · '+periodeLabel:'Belum ada data'} · <span style="color:var(--primary);font-weight:700">Lihat detail →</span></div>
       </div>`;
     }).join('');
   }
