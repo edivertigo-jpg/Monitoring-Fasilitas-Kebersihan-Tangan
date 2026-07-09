@@ -216,7 +216,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);
   transition:transform .2s,box-shadow .2s;
 }
-.area-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.area-card{cursor:pointer}
+.area-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+.area-card:active{transform:translateY(0) scale(.98)}
 .area-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .area-name{font-size:13px;font-weight:700;color:var(--text)}
 .area-pct{font-size:20px;font-weight:800;font-family:var(--mono)}
@@ -443,6 +445,22 @@ tbody td{padding:11px 14px;color:var(--text)}
 .status-radio.sel-p .srdot{background:var(--orange);border-color:var(--orange)}
 .status-radio.sel-s .srdot{background:var(--green);border-color:var(--green)}
 .sr-label{font-size:13px;font-weight:600;color:var(--text)}
+
+/* REKAP FILTER BAR */
+.rekap-filter-bar{
+  background:var(--white);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:12px 16px;
+  margin-bottom:14px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.rekap-sel{
+  background:var(--primary-light);border:1.5px solid var(--border2);
+  color:var(--primary);font-size:12px;font-weight:700;font-family:var(--font);
+  padding:7px 12px;border-radius:8px;outline:none;cursor:pointer;
+  flex:1;min-width:140px;
+}
+.rekap-sel option{background:white;color:var(--text)}
+.rekap-count{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap;flex-shrink:0}
 
 /* FILTER CHIPS */
 .filter-chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
@@ -730,7 +748,16 @@ tbody td{padding:11px 14px;color:var(--text)}
 
 <!-- TAB: REKAP -->
 <div class="tab-panel" id="tab-rekap">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button onclick="loadData().then(()=>toast('✅ Diperbarui','success'))" style="background:var(--primary-light);border:1.5px solid var(--border2);color:var(--primary);font-size:11px;font-weight:700;font-family:var(--font);padding:6px 14px;border-radius:8px;cursor:pointer">🔄 Refresh</button></div>
+  <div class="rekap-filter-bar">
+    <select class="rekap-sel" id="rekapAreaFilter" onchange="onRekapAreaFilterChange()">
+      <option value="">🏢 Semua Area</option>
+    </select>
+    <select class="rekap-sel" id="rekapRoomFilter" onchange="onRekapRoomFilterChange()">
+      <option value="">🚪 Semua Ruangan</option>
+    </select>
+    <button onclick="loadData().then(()=>toast('✅ Diperbarui','success'))" style="background:var(--primary-light);border:1.5px solid var(--border2);color:var(--primary);font-size:11px;font-weight:700;font-family:var(--font);padding:7px 14px;border-radius:8px;cursor:pointer;flex-shrink:0">🔄 Refresh</button>
+  </div>
+  <div class="rekap-count" id="rekapCount" style="margin-bottom:10px"></div>
   <div id="rekapDebug" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto"></div>
   <div class="table-wrap"><div class="table-scroll">
     <table>
@@ -860,7 +887,8 @@ const S={
   rooms:[],summary:null,foto:[],rekap:[],
   fotoFiltered:[], // current filtered list for index-based access
   fotoFilter:'semua',connected:false,
-  upId:null,upStatus:null
+  upId:null,upStatus:null,
+  rekapArea:'',rekapRoom:'',adArea:''
 };
 const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const ITEMS=[
@@ -903,6 +931,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   buildMonthNav();
   buildChecklistUI();
   buildItemGrid();
+  buildRekapAreaFilter();
   if(S.apiUrl) connectAPI(true);
   // Service Worker
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', {scope: './'}).catch(()=>{});
@@ -993,6 +1022,7 @@ async function loadData(){
   ]);
   if(rooms.status==='fulfilled'&&rooms.value.ok){
     S.rooms=rooms.value.rooms||[]; populateRoomSelects(); renderRoomList();
+    populateRekapRoomFilter(S.rekapArea);
   }
   if(summary.status==='fulfilled'&&summary.value.ok){
     S.summary=summary.value.summary; renderSummary();
@@ -1031,7 +1061,7 @@ function renderSummary(){
       const d=areas[area]; const pct=d?parseFloat(d.rata):0;
       const c=AREA_CLR[area];
       const pctColor=pct>=80?'var(--green-dark)':pct>=50?'var(--orange)':'var(--red)';
-      return `<div class="area-card">
+      return `<div class="area-card" onclick="openAreaDetail('${area}')">
         <div class="area-card-top">
           <div class="area-name">${area}</div>
           <div class="area-pct" style="color:${pctColor}">${pct}%</div>
@@ -1039,16 +1069,18 @@ function renderSummary(){
         <div class="area-bar-track">
           <div class="area-bar-fill" style="width:${pct}%;background:${c.g}"></div>
         </div>
-        <div class="area-meta">${d?d.jumlah+' entri · '+MONTHS[+S.bulan-1]+' '+S.tahun:'Belum ada data'}</div>
+        <div class="area-meta">${d?d.jumlah+' entri · '+MONTHS[+S.bulan-1]+' '+S.tahun:'Belum ada data'} · <span style="color:var(--primary);font-weight:700">Lihat detail →</span></div>
       </div>`;
     }).join('');
   }
   const items=s.itemBreakdown||{}; const total=s.totalEntri||1;
   ITEMS.forEach(it=>{
     const el=document.getElementById('ibar-'+it.key); if(!el) return;
-    const pct=total>0?Math.round((items[it.key]||0)/total*100):0;
-    el.style.width=pct+'%';
-    document.getElementById('ipct-'+it.key).textContent=pct+'%';
+    const raw=total>0?(items[it.key]||0)/total*100:0;
+    const pct=Math.round(raw*100)/100; // simpan 2 desimal, jangan langsung dibulatkan ke integer
+    el.style.width=Math.min(raw,100)+'%';
+    const pctTxt=Number.isInteger(pct)?pct+'%':pct.toFixed(2)+'%';
+    document.getElementById('ipct-'+it.key).textContent=pctTxt;
   });
 }
 function updateFotoStat(){
@@ -1138,24 +1170,55 @@ function filterFoto(status,btn){
 }
 
 // ── REKAP ─────────────────────────────────────────────────
+function buildRekapAreaFilter(){
+  const sel=document.getElementById('rekapAreaFilter');
+  sel.innerHTML='<option value="">🏢 Semua Area</option>'+
+    Object.keys(AREA_CLR).map(a=>`<option value="${a}">${a}</option>`).join('');
+}
+function populateRekapRoomFilter(area){
+  const sel=document.getElementById('rekapRoomFilter');
+  if(!sel) return;
+  const keep=sel.value;
+  let rooms=S.rooms||[];
+  if(area) rooms=rooms.filter(r=>r.Area_Lantai===area);
+  const names=[...new Set(rooms.map(r=>r.Nama_Ruangan))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML='<option value="">🚪 Semua Ruangan</option>'+
+    names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(names.includes(keep)) sel.value=keep; else S.rekapRoom='';
+}
+function onRekapAreaFilterChange(){
+  S.rekapArea=document.getElementById('rekapAreaFilter').value;
+  S.rekapRoom=''; document.getElementById('rekapRoomFilter').value='';
+  populateRekapRoomFilter(S.rekapArea);
+  renderRekap();
+}
+function onRekapRoomFilterChange(){
+  S.rekapRoom=document.getElementById('rekapRoomFilter').value;
+  renderRekap();
+}
 function renderRekap(){
   const tb=document.getElementById('rekapTb');
   const dbg = document.getElementById('rekapDebug');
+  const cnt = document.getElementById('rekapCount');
   if(!S.rekap.length){
-    // Show debug info
     dbg.style.display='block';
     dbg.textContent = '⚠️ Data rekap kosong untuk Bulan='+S.bulan+' Tahun='+S.tahun+'\n'+
       'Total data di S.rekap: '+S.rekap.length+'\n'+
       'Coba lihat Console browser (F12) untuk detail error.';
     tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Belum ada data untuk ${MONTHS[+S.bulan-1]} ${S.tahun}.</td></tr>`;
+    if(cnt) cnt.textContent='';
     return;
   }
   dbg.style.display='none';
-  // Debug info (hidden - check console for details)
-  if(S.rekap.length>0){
-    document.getElementById('rekapDebug').style.display='none';
+  let data=S.rekap;
+  if(S.rekapArea) data=data.filter(d=>(d.Area_Lantai||'')===S.rekapArea);
+  if(S.rekapRoom) data=data.filter(d=>(d.Nama_Ruangan||'')===S.rekapRoom);
+  if(cnt) cnt.textContent=`Menampilkan ${data.length} dari ${S.rekap.length} entri`+(S.rekapArea?` · Area: ${S.rekapArea}`:'')+(S.rekapRoom?` · Ruangan: ${S.rekapRoom}`:'');
+  if(!data.length){
+    tb.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Tidak ada data yang cocok dengan filter.</td></tr>`;
+    return;
   }
-  tb.innerHTML=S.rekap.map(d=>{
+  tb.innerHTML=data.map(d=>{
     // Support berbagai nama field (robust)
     // Field names sesuai header sheet: Nama_Ruangan, Area_Lantai, Tanggal, Observer, Skor_Persen
     const namaRuangan = d.Nama_Ruangan||d['Nama_Ruangan']||'—';
@@ -1174,6 +1237,46 @@ function renderRekap(){
       <td><span class="badge-st ${cls}">${lbl}</span></td>
     </tr>`;
   }).join('');
+}
+
+// ── AREA DETAIL (klik area card di Dashboard) ──────────────
+function openAreaDetail(area){
+  S.adArea=area;
+  document.getElementById('adTitle').textContent='📍 '+area;
+  document.getElementById('adSummary').textContent=`${MONTHS[+S.bulan-1]} ${S.tahun}`;
+  const roomsInArea=(S.rooms||[]).filter(r=>r.Area_Lantai===area);
+  const rows=roomsInArea.map(r=>{
+    const entries=S.rekap.filter(d=>d.Area_Lantai===area&&d.Nama_Ruangan===r.Nama_Ruangan);
+    const jumlah=entries.length;
+    const avg=jumlah?Math.round(entries.reduce((s,d)=>s+Number(d.Skor_Persen||0),0)/jumlah):null;
+    return {nama:r.Nama_Ruangan, jumlah, avg};
+  }).sort((a,b)=>{
+    if(a.avg===null&&b.avg===null) return a.nama.localeCompare(b.nama);
+    if(a.avg===null) return -1;
+    if(b.avg===null) return 1;
+    return a.avg-b.avg;
+  });
+  document.getElementById('adSummary').textContent=`${MONTHS[+S.bulan-1]} ${S.tahun} · ${roomsInArea.length} ruangan`;
+  document.getElementById('adTb').innerHTML=rows.map(r=>{
+    if(r.avg===null){
+      return `<tr><td class="td-room">${r.nama}</td><td>0</td><td><span class="skor-val" style="color:var(--muted)">—</span></td><td><span class="badge-st tidak" style="opacity:.6">Belum diisi</span></td></tr>`;
+    }
+    const cls=r.avg>=100?'patuh':r.avg>=80?'perhatian':'tidak';
+    const lbl=r.avg>=100?'✅ Patuh':r.avg>=80?'⚠️ Perhatian':'❌ Tidak Patuh';
+    const color=r.avg>=100?'var(--green-dark)':r.avg>=80?'var(--orange)':'var(--red)';
+    return `<tr><td class="td-room">${r.nama}</td><td>${r.jumlah}</td><td><span class="skor-val" style="color:${color}">${r.avg}%</span></td><td><span class="badge-st ${cls}">${lbl}</span></td></tr>`;
+  }).join('');
+  document.getElementById('mAreaDetail').classList.add('open');
+}
+function goToRekapFromArea(){
+  const area=S.adArea;
+  closeModal('mAreaDetail');
+  S.rekapArea=area; S.rekapRoom='';
+  document.getElementById('rekapAreaFilter').value=area;
+  populateRekapRoomFilter(area);
+  document.getElementById('rekapRoomFilter').value='';
+  renderRekap();
+  switchTab('rekap');
 }
 
 // ── ROOM LIST ─────────────────────────────────────────────
@@ -1897,6 +2000,26 @@ function toast(msg,type=''){ const el=document.getElementById('toast'); el.textC
     <div class="fg"><label>Link Foto Kerusakan (Google Drive)</label><input type="url" id="efLink" placeholder="https://drive.google.com/file/d/..."></div>
     <div class="fg"><label>Keterangan</label><textarea id="efKet" rows="2"></textarea></div>
     <button class="btn-submit" id="btnSaveEdit" onclick="submitEditFoto()">💾 Simpan Perubahan</button>
+  </div>
+</div>
+
+<!-- MODAL: AREA DETAIL (klik area card di Dashboard) -->
+<div class="modal-overlay" id="mAreaDetail">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="adTitle">📍 Detail Area</div>
+      <button class="modal-close" onclick="closeModal('mAreaDetail')">✕</button>
+    </div>
+    <div id="adSummary" style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:14px"></div>
+    <div class="table-wrap" style="margin-bottom:14px">
+      <div class="table-scroll" style="max-height:56vh">
+        <table>
+          <thead><tr><th>Ruangan</th><th>Entri</th><th>Skor</th><th>Status</th></tr></thead>
+          <tbody id="adTb"></tbody>
+        </table>
+      </div>
+    </div>
+    <button class="btn-submit" id="adBtnRekap" style="margin-top:0" onclick="goToRekapFromArea()">📋 Lihat Detail di Tab Rekap</button>
   </div>
 </div>
 
